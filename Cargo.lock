@@ -2,7 +2,7 @@
 name = "cryptobox-c"
 version = "0.5.1"
 dependencies = [
- "cryptobox 0.5.1",
+ "cryptobox 0.5.1 (git+https://github.com/shared-secret/cryptobox?branch=develop)",
  "libc 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "proteus 0.4.1 (git+https://github.com/shared-secret/proteus?branch=develop)",
 ]
@@ -24,6 +24,7 @@ dependencies = [
 [[package]]
 name = "cryptobox"
 version = "0.5.1"
+source = "git+https://github.com/shared-secret/cryptobox?branch=develop#6d42fff141f6bb3c071b4fe2376a8db0302c291f"
 dependencies = [
  "byteorder 0.3.13 (registry+https://github.com/rust-lang/crates.io-index)",
  "cbor-codec 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",

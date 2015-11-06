@@ -3,8 +3,8 @@ name         = "cryptobox-c"
 version      = "0.5.1"
 authors      = ["Roman S. Borschel <roman@pkaboo.org>", "Toralf Wittner <tw@dtex.org>"]
 description  = "C-FFI to cryptobox"
-homepage     = "https://github.com/shared-secret/cryptobox/cryptobox-c"
-repository   = "git@github.com:shared-secret/cryptobox.git"
+homepage     = "https://github.com/shared-secret/cryptobox-c"
+repository   = "git@github.com:shared-secret/cryptobox-c.git"
 license      = "MPL-2.0"
 
 [lib]
@@ -19,4 +19,5 @@ git    = "https://github.com/shared-secret/proteus"
 branch = "develop"
 
 [dependencies.cryptobox]
-path   = "../cryptobox"
+git    = "https://github.com/shared-secret/cryptobox"
+branch = "develop"

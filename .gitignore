@@ -1,7 +1,5 @@
 target
 test/target
-Cargo.lock
-!cryptobox-c/Cargo.lock
 *.swp
 *.swo
 tags
