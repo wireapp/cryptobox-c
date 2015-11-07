@@ -1,4 +1,4 @@
-# Cryptobox - C API [![Build Status](https://travis-ci.org/shared-secret/cryptobox.svg?branch=develop)](https://travis-ci.org/shared-secret/cryptobox)
+# Cryptobox - C API [![Build Status](https://travis-ci.org/shared-secret/cryptobox-c.svg?branch=develop)](https://travis-ci.org/shared-secret/cryptobox-c)
 
 `cryptobox-c` provides a high-level C API for the `cryptobox` library.
 
