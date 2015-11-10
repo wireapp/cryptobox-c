@@ -137,7 +137,9 @@ void test_prekey_removal(CBox * alice_box, CBox * bob_box) {
 
 void test_random_bytes(CBox const * b) {
     printf("test_random_bytes ... ");
-    CBoxVec * random = cbox_random_bytes(b, 16);
+    CBoxVec * random = NULL;
+    CBoxResult rc = cbox_random_bytes(b, 16, &random);
+    assert(rc == CBOX_SUCCESS);
     assert(16 == cbox_vec_len(random));
     cbox_vec_free(random);
     printf("OK\n");
