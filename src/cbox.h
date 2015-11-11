@@ -77,7 +77,11 @@ typedef enum {
 
     // An attempt was made to initialise a new session with a prekey ID
     // for which no prekey could be found.
-    CBOX_PREKEY_NOT_FOUND        = 14
+    CBOX_PREKEY_NOT_FOUND        = 14,
+
+    // An unknown critical error was encountered which prevented the
+    // computation from succeeding.
+    CBOX_PANIC                   = 15
 } CBoxResult;
 
 // CBoxIdentityMode /////////////////////////////////////////////////////////
@@ -285,7 +289,7 @@ void cbox_fingerprint_remote(CBoxSession const * s, CBoxVec ** fp);
 // `b` is the CBox that serves as the initialised context for obtaining
 // randomness.
 // `len` is the number of random bytes to generate.
-CBoxVec * cbox_random_bytes(CBox const * b, size_t len);
+CBoxResult cbox_random_bytes(CBox const * b, size_t len, CBoxVec ** rb);
 
 #ifdef __cplusplus
 }
