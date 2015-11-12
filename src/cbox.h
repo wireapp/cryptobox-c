@@ -269,7 +269,7 @@ CBoxResult cbox_decrypt(CBoxSession * s,
 // ---
 // `b` is the box from which to obtain the fingerprint.
 // `fp` is the pointer to point at the fingerprint.
-void cbox_fingerprint_local(CBox const * b, CBoxVec ** fp);
+CBoxResult cbox_fingerprint_local(CBox const * b, CBoxVec ** fp);
 
 // Get the public key fingerprint of the remote identity associated with
 // the given session.
@@ -278,7 +278,7 @@ void cbox_fingerprint_local(CBox const * b, CBoxVec ** fp);
 // ---
 // `s` is the session from which to obtain the fingerprint of the remote peer.
 // `fp` is the pointer to point at the fingerprint.
-void cbox_fingerprint_remote(CBoxSession const * s, CBoxVec ** fp);
+CBoxResult cbox_fingerprint_remote(CBoxSession const * s, CBoxVec ** fp);
 
 // Utilities ////////////////////////////////////////////////////////////////
 

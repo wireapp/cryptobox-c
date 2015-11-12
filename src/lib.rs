@@ -258,24 +258,24 @@ pub extern fn cbox_decrypt
 
 #[no_mangle]
 pub extern
-fn cbox_fingerprint_local(b: &'static CBox<FileStore>, out: *mut *mut Vec<u8>) {
+fn cbox_fingerprint_local(b: &'static CBox<FileStore>, out: *mut *mut Vec<u8>) -> CBoxResult {
     let out = AssertPanicSafe(out);
     recover(move || {
         let fp = b.fingerprint().into_bytes();
         assign(*out, Box::new(fp));
         CBoxResult::Success
-    });
+    })
 }
 
 #[no_mangle]
 pub extern
-fn cbox_fingerprint_remote(session: &'static CBoxSession<'static, FileStore>, out: *mut *mut Vec<u8>) {
+fn cbox_fingerprint_remote(session: &'static CBoxSession<'static, FileStore>, out: *mut *mut Vec<u8>) -> CBoxResult {
     let out = AssertPanicSafe(out);
     recover(move || {
         let fp = session.fingerprint_remote().into_bytes();
         assign(*out, Box::new(fp));
         CBoxResult::Success
-    });
+    })
 }
 
 // CBoxVec //////////////////////////////////////////////////////////////////
