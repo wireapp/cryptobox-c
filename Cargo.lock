@@ -1,10 +1,10 @@
 [root]
 name = "cryptobox-c"
-version = "0.5.1"
+version = "0.6.0"
 dependencies = [
- "cryptobox 0.5.1 (git+https://github.com/shared-secret/cryptobox?branch=develop)",
+ "cryptobox 0.6.0 (git+https://github.com/shared-secret/cryptobox?tag=v0.6.0)",
  "libc 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "proteus 0.4.1 (git+https://github.com/shared-secret/proteus?branch=develop)",
+ "proteus 0.4.1 (git+https://github.com/shared-secret/proteus?tag=v0.4.1)",
 ]
 
 [[package]]
@@ -23,12 +23,12 @@ dependencies = [
 
 [[package]]
 name = "cryptobox"
-version = "0.5.1"
-source = "git+https://github.com/shared-secret/cryptobox?branch=develop#0a06cec7cab1ad112e9ce7bd7abedce039f1d61d"
+version = "0.6.0"
+source = "git+https://github.com/shared-secret/cryptobox?tag=v0.6.0#c318ca8a1ffd0c1844674ea1d97be6a59d7136f2"
 dependencies = [
  "byteorder 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "cbor-codec 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "proteus 0.4.1 (git+https://github.com/shared-secret/proteus?branch=develop)",
+ "proteus 0.4.1 (git+https://github.com/shared-secret/proteus?tag=v0.4.1)",
 ]
 
 [[package]]
@@ -61,7 +61,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "proteus"
 version = "0.4.1"
-source = "git+https://github.com/shared-secret/proteus?branch=develop#aaabc38cb446cb1c36d749557a13e27e7094cde9"
+source = "git+https://github.com/shared-secret/proteus?tag=v0.4.1#07104b065ff1142bbcb4958f5222e3bfdbc603ed"
 dependencies = [
  "byteorder 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "cbor-codec 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
