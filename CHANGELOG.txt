@@ -1,0 +1,9 @@
+0.6.0
+-----
+- API changes:
+    - New error code `Panic`
+    - `cbox_fingerprint_local`, `cbox_fingerprint_remote` and
+      `cbox_random_bytes` now return a `CBoxResult`
+- Add `catch_panic` at FFI boundaries
+- Upgrade external dependencies (byteorder, libc)
+- Upgrade proteus (v0.4.1) and cryptobox (v0.6.0)
