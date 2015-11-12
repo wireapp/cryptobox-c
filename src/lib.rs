@@ -297,6 +297,19 @@ pub extern fn cbox_vec_len(v: &Vec<u8>) -> size_t {
 
 // Unsafe ///////////////////////////////////////////////////////////////////
 
+#[cfg(not(target_os = "android"))]
+fn to_str<'r>(s: *const c_char) -> Result<&'r str, str::Utf8Error> {
+    unsafe { CStr::from_ptr(s).to_str() }
+}
+
+#[cfg(target_os = "android")]
+#[cfg(any(target_arch = "arm", target_arch = "x86"))]
+fn to_str<'r>(s: *const c_char) -> Result<&'r str, str::Utf8Error> {
+    unsafe { CStr::from_ptr(s as *const i8).to_str() }
+}
+
+#[cfg(target_os = "android")]
+#[cfg(target_arch = "aarch64")]
 fn to_str<'r>(s: *const c_char) -> Result<&'r str, str::Utf8Error> {
     unsafe { CStr::from_ptr(s).to_str() }
 }
