@@ -5,7 +5,7 @@ authors      = ["Wire Swiss GmbH <support@wire.com>"]
 description  = "C-FFI to cryptobox"
 homepage     = "https://github.com/wireapp/cryptobox-c"
 repository   = "git@github.com:wireapp/cryptobox-c.git"
-license      = "MPL-2.0"
+license      = "GPL-3.0"
 
 [lib]
 name         = "cryptobox"
