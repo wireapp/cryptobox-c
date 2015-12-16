@@ -2,9 +2,9 @@
 name = "cryptobox-c"
 version = "0.6.1"
 dependencies = [
- "cryptobox 0.6.1 (git+https://github.com/shared-secret/cryptobox?branch=develop)",
+ "cryptobox 0.6.1 (git+https://github.com/wireapp/cryptobox?branch=develop)",
  "libc 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "proteus 0.4.1 (git+https://github.com/shared-secret/proteus?branch=develop)",
+ "proteus 0.4.1 (git+https://github.com/wireapp/proteus?branch=develop)",
 ]
 
 [[package]]
@@ -24,17 +24,17 @@ dependencies = [
 [[package]]
 name = "cryptobox"
 version = "0.6.1"
-source = "git+https://github.com/shared-secret/cryptobox?branch=develop#d9f1fdf9bf959e4e7db09e1fb9ad0f0f7c71bfc9"
+source = "git+https://github.com/wireapp/cryptobox?branch=develop#ade6a875ae637f9967f108b173b9cf7944ac1aed"
 dependencies = [
  "byteorder 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "cbor-codec 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "proteus 0.4.1 (git+https://github.com/shared-secret/proteus?branch=develop)",
+ "proteus 0.4.1 (git+https://github.com/wireapp/proteus?branch=develop)",
 ]
 
 [[package]]
 name = "hkdf"
 version = "0.1.0"
-source = "git+https://github.com/twittner/hkdf#e4a0760b0a50ddcd12fc92eb6443db613108b845"
+source = "git+https://github.com/wireapp/hkdf#bd8dd71863c1db8fee6df00a60e07d9f23a40a5d"
 dependencies = [
  "sodiumoxide 0.0.9 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -61,11 +61,11 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "proteus"
 version = "0.4.1"
-source = "git+https://github.com/shared-secret/proteus?branch=develop#885ee0fd1fcaf15aa3724d490839750b0b49bd10"
+source = "git+https://github.com/wireapp/proteus?branch=develop#862d4631cf0e1b5a8fb37009dc1d58882a49ce50"
 dependencies = [
  "byteorder 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "cbor-codec 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "hkdf 0.1.0 (git+https://github.com/twittner/hkdf)",
+ "hkdf 0.1.0 (git+https://github.com/wireapp/hkdf)",
  "libc 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "sodiumoxide 0.0.9 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
