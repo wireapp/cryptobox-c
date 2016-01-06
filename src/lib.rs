@@ -27,7 +27,7 @@ use proteus::{DecodeError, EncodeError};
 use proteus::keys::{self, PreKeyId};
 use proteus::session::DecryptError;
 use std::borrow::Cow;
-use std::ffi::{CStr, NulError};
+use std::ffi::CStr;
 use std::fmt;
 use std::ops::{Deref, DerefMut};
 use std::path::Path;
