@@ -1,6 +1,6 @@
 [package]
 name         = "cryptobox-c"
-version      = "0.7.0"
+version      = "0.7.1"
 authors      = ["Wire Swiss GmbH <support@wire.com>"]
 description  = "C-FFI to cryptobox"
 homepage     = "https://github.com/wireapp/cryptobox-c"
@@ -15,9 +15,9 @@ crate-type   = ["dylib"]
 libc = ">= 0.1.12"
 
 [dependencies.proteus]
-git = "https://github.com/wireapp/proteus"
-tag = "v0.5.0"
+git    = "https://github.com/wireapp/proteus"
+branch = "develop"
 
 [dependencies.cryptobox]
-git = "https://github.com/wireapp/cryptobox"
-tag = "v0.7.0"
+git    = "https://github.com/wireapp/cryptobox"
+branch = "develop"
