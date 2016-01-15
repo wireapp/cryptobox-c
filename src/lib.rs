@@ -142,6 +142,42 @@ pub extern fn cbox_random_bytes(_: &CBox<FileStore>, n: size_t, out: *mut *mut V
     })
 }
 
+#[no_mangle]
+pub extern fn cbox_sign(cbox:      &'static CBox<FileStore>,
+                        c_dat:     *const uint8_t,
+                        c_dat_len: size_t,
+                        out:       *mut *mut Vec<u8>) -> CBoxResult
+{
+    let out   = AssertPanicSafe(out);
+    let c_dat = AssertPanicSafe(c_dat);
+    recover(move || {
+        let dat_slice = try_unwrap!(to_slice(*c_dat, c_dat_len as usize));
+        let sig = try_unwrap!(cbox.sign(dat_slice));
+        assign(*out, Box::new(sig));
+        CBoxResult::Success
+    })
+}
+
+#[no_mangle]
+pub extern fn cbox_verify(cbox:      &'static CBox<FileStore>,
+                          c_dat:     *const uint8_t,
+                          c_dat_len: size_t,
+                          c_sig:     *const uint8_t,
+                          c_sig_len: size_t) -> CBoxResult
+{
+    let c_dat = AssertPanicSafe(c_dat);
+    let c_sig = AssertPanicSafe(c_sig);
+    recover(move || {
+        let sig_slice = try_unwrap!(to_slice(*c_sig, c_sig_len as usize));
+        let dat_slice = try_unwrap!(to_slice(*c_dat, c_dat_len as usize));
+        if try_unwrap!(cbox.verify(sig_slice, dat_slice)) {
+            CBoxResult::Success
+        } else {
+            CBoxResult::InvalidSignature
+        }
+    })
+}
+
 // Prekeys //////////////////////////////////////////////////////////////////
 
 #[no_mangle]
@@ -285,6 +321,26 @@ fn cbox_fingerprint_remote(session: &'static CBoxSession<'static, FileStore>, ou
         let fp = session.fingerprint_remote().into_bytes();
         assign(*out, Box::new(fp));
         CBoxResult::Success
+    })
+}
+
+#[no_mangle]
+pub extern fn cbox_verify_remote(session:   &'static CBoxSession<'static, FileStore>,
+                                 c_dat:     *const uint8_t,
+                                 c_dat_len: size_t,
+                                 c_sig:     *const uint8_t,
+                                 c_sig_len: size_t) -> CBoxResult
+{
+    let c_dat = AssertPanicSafe(c_dat);
+    let c_sig = AssertPanicSafe(c_sig);
+    recover(move || {
+        let sig_slice = try_unwrap!(to_slice(*c_sig, c_sig_len as usize));
+        let dat_slice = try_unwrap!(to_slice(*c_dat, c_dat_len as usize));
+        if try_unwrap!(session.verify_remote(sig_slice, dat_slice)) {
+            CBoxResult::Success
+        } else {
+            CBoxResult::InvalidSignature
+        }
     })
 }
 

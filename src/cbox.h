@@ -304,7 +304,29 @@ CBoxResult cbox_fingerprint_remote(CBoxSession const * s, CBoxVec ** fp);
 // `b` is the CBox that serves as the initialised context for obtaining
 // randomness.
 // `len` is the number of random bytes to generate.
+// `rb` is the pointer to point at the random bytes.
 CBoxResult cbox_random_bytes(CBox const * b, size_t len, CBoxVec ** rb);
+
+// Sign arbitrary data with the local identity.
+CBoxResult cbox_sign(CBox const * b,
+                     uint8_t const * dat,
+                     size_t dat_len,
+                     CBoxVec ** out);
+
+// Verify a signature for arbitrary data with the local identity.
+CBoxResult cbox_verify(CBox const * b,
+                       uint8_t const * dat,
+                       size_t dat_len,
+                       uint8_t const * sig,
+                       size_t sig_len);
+
+// Verify a signature for arbitrary data with the remote identity
+// of the given session.
+CBoxResult cbox_verify_remote(CBoxSession const * s,
+                              uint8_t const * dat,
+                              size_t dat_len,
+                              uint8_t const * sig,
+                              size_t sig_len);
 
 #ifdef __cplusplus
 }

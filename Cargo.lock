@@ -2,7 +2,7 @@
 name = "cryptobox-c"
 version = "0.7.0"
 dependencies = [
- "cryptobox 0.7.0 (git+https://github.com/wireapp/cryptobox?tag=v0.7.0)",
+ "cryptobox 0.7.0 (git+https://github.com/wireapp/cryptobox?branch=feature/experiment-sign-verify)",
  "libc 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "proteus 0.5.0 (git+https://github.com/wireapp/proteus?tag=v0.5.0)",
 ]
@@ -24,7 +24,7 @@ dependencies = [
 [[package]]
 name = "cryptobox"
 version = "0.7.0"
-source = "git+https://github.com/wireapp/cryptobox?tag=v0.7.0#91ccb8128f8f99f99eadc10cc08c7dbf2a3d3141"
+source = "git+https://github.com/wireapp/cryptobox?branch=feature/experiment-sign-verify#aecd0d32b46dae8c89f6740ff27cc21234fe5b4a"
 dependencies = [
  "byteorder 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "cbor-codec 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",

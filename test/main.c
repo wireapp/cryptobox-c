@@ -382,6 +382,37 @@ void test_wrong_identity() {
     printf("OK\n");
 }
 
+void test_sign_verify(CBox * alice_box, CBox * bob_box) {
+    printf("test_sign_verify ... ");
+
+    uint8_t const dat[] = "abcdefg";
+
+    // Sign and verify with the local identity
+    CBoxVec * sig = NULL;
+    CBoxResult rc = cbox_sign(alice_box, dat, sizeof(dat), &sig);
+    assert(rc == CBOX_SUCCESS);
+    rc = cbox_verify(alice_box, dat, sizeof(dat), cbox_vec_data(sig), cbox_vec_len(sig));
+    assert(rc == CBOX_SUCCESS);
+    cbox_vec_free(sig);
+
+    // Alice verifies something signed by Bob
+    CBoxVec * bob_prekey = NULL;
+    rc = cbox_new_prekey(bob_box, 0, &bob_prekey);
+    assert(rc == CBOX_SUCCESS);
+    CBoxSession * alice = NULL;
+    rc = cbox_session_init_from_prekey(alice_box, "alice", cbox_vec_data(bob_prekey), cbox_vec_len(bob_prekey), &alice);
+    cbox_vec_free(bob_prekey);
+    assert(rc == CBOX_SUCCESS);
+    rc = cbox_sign(bob_box, dat, sizeof(dat), &sig);
+    assert(rc == CBOX_SUCCESS);
+    rc = cbox_verify_remote(alice, dat, sizeof(dat), cbox_vec_data(sig), cbox_vec_len(sig));
+    assert(rc == CBOX_SUCCESS);
+    cbox_vec_free(sig);
+    cbox_session_close(alice);
+
+    printf("OK\n");
+}
+
 int main() {
     // Setup Alice's & Bob's crypto boxes
     char alice_tmp[] = "/tmp/cbox_test_aliceXXXXXX";
@@ -416,6 +447,7 @@ int main() {
     test_box_reopen();
     test_external_identity();
     test_wrong_identity();
+    test_sign_verify(alice_box, bob_box);
 
     // Cleanup
     cbox_close(alice_box);
