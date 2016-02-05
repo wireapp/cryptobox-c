@@ -306,6 +306,15 @@ CBoxResult cbox_fingerprint_remote(CBoxSession const * s, CBoxVec ** fp);
 // `len` is the number of random bytes to generate.
 CBoxResult cbox_random_bytes(CBox const * b, size_t len, CBoxVec ** rb);
 
+// Check if the given byte array is a well formed prekey bundle.
+//
+// `result` will contain `0` if the check fails and `1` otherwise.
+// `prekey_bundle` is the byte array to check.
+// `prekey_bundle_len` is the length of `prekey_bundle`.
+CBoxResult cbox_is_prekey_bundle(uint8_t const * prekey_bundle,
+                                 size_t prekey_bundle_len,
+                                 uint8_t * result);
+
 #ifdef __cplusplus
 }
 #endif
