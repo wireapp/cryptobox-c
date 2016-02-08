@@ -160,6 +160,31 @@ void test_random_bytes(CBox const * b) {
     printf("OK\n");
 }
 
+void test_prekey_check(CBox const * b) {
+    printf("test_is_prekey ... ");
+
+    uint16_t prekey_id = 0;
+
+    CBoxVec * random = NULL;
+    CBoxResult rc = cbox_random_bytes(b, 16, &random);
+    assert(rc == CBOX_SUCCESS);
+
+    rc = cbox_is_prekey(cbox_vec_data(random), cbox_vec_len(random), &prekey_id);
+    assert(rc == CBOX_DECODE_ERROR);
+    assert(0 == prekey_id);
+    cbox_vec_free(random);
+
+    rc = cbox_new_prekey(b, 42, &random);
+    assert(rc == CBOX_SUCCESS);
+
+    rc = cbox_is_prekey(cbox_vec_data(random), cbox_vec_len(random), &prekey_id);
+    assert(rc == CBOX_SUCCESS);
+    assert(42 == prekey_id);
+    cbox_vec_free(random);
+
+    printf("OK\n");
+}
+
 void test_last_prekey(CBox * alice_box, CBox * bob_box) {
     printf("test_last_prekey ... ");
     CBoxVec * bob_prekey = NULL;
@@ -410,6 +435,7 @@ int main() {
     test_basics(alice_box, bob_box);
     test_prekey_removal(alice_box, bob_box);
     test_random_bytes(alice_box);
+    test_prekey_check(alice_box);
     test_last_prekey(alice_box, bob_box);
     test_duplicate_msg(alice_box, bob_box);
     test_delete_session(alice_box, bob_box);
