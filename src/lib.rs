@@ -22,9 +22,9 @@ extern crate proteus;
 use cryptobox::{CBox, CBoxError, CBoxSession, Identity, IdentityMode};
 use cryptobox::store::Store;
 use cryptobox::store::file::FileStore;
-use libc::{c_char, c_ushort, size_t, uint8_t};
+use libc::{c_char, c_ushort, size_t, uint8_t, uint16_t};
 use proteus::{DecodeError, EncodeError};
-use proteus::keys::{self, PreKeyId};
+use proteus::keys::{self, PreKeyId, PreKeyBundle};
 use proteus::session::DecryptError;
 use std::borrow::Cow;
 use std::ffi::CStr;
@@ -60,7 +60,7 @@ fn cbox_file_open(c_path: *const c_char, out: *mut *mut CBox<FileStore>) -> CBox
     recover(move || {
         let path = try_unwrap!(to_str(*c_path));
         let cbox = try_unwrap!(CBox::file_open(&Path::new(path)));
-        assign(*out, Box::new(cbox));
+        assign(*out, Box::into_raw(Box::new(cbox)));
         CBoxResult::Success
     })
 }
@@ -88,7 +88,7 @@ fn cbox_file_open_with(c_path:   *const c_char,
             CBoxIdentityMode::Public   => IdentityMode::Public
         };
         let cbox = try_unwrap!(CBox::file_open_with(&Path::new(path), ident, mode));
-        assign(*out, Box::new(cbox));
+        assign(*out, Box::into_raw(Box::new(cbox)));
         CBoxResult::Success
     })
 }
@@ -108,7 +108,7 @@ fn cbox_identity_copy(cbox: &'static CBox<FileStore>, out: *mut *mut Vec<u8>) ->
     let out = AssertPanicSafe(out);
     recover(move || {
         let i = try_unwrap!(Identity::Sec(Cow::Borrowed(cbox.identity())).serialise());
-        assign(*out, Box::new(i));
+        assign(*out, Box::into_raw(Box::new(i)));
         CBoxResult::Success
     })
 }
@@ -137,7 +137,7 @@ fn cbox_session_delete(cbox: &'static CBox<FileStore>, c_sid: *const c_char) -> 
 pub extern fn cbox_random_bytes(_: &CBox<FileStore>, n: size_t, out: *mut *mut Vec<u8>) -> CBoxResult {
     let out = AssertPanicSafe(out);
     recover(move || {
-        assign(*out, Box::new(keys::rand_bytes(n as usize)));
+        assign(*out, Box::into_raw(Box::new(keys::rand_bytes(n as usize))));
         CBoxResult::Success
     })
 }
@@ -149,12 +149,12 @@ pub static CBOX_LAST_PREKEY_ID: c_ushort = u16::MAX;
 
 #[no_mangle]
 pub extern
-fn cbox_new_prekey(cbox: &'static CBox<FileStore>, pkid: c_ushort, out: *mut *mut Vec<u8>) -> CBoxResult {
+fn cbox_new_prekey(cbox: &'static CBox<FileStore>, pkid: uint16_t, out: *mut *mut Vec<u8>) -> CBoxResult {
     let out  = AssertPanicSafe(out);
     recover(move || {
         let bundle = try_unwrap!(cbox.new_prekey(PreKeyId::new(pkid)));
         let bytes  = try_unwrap!(bundle.serialise());
-        assign(*out, Box::new(bytes));
+        assign(*out, Box::into_raw(Box::new(bytes)));
         CBoxResult::Success
     })
 }
@@ -176,7 +176,7 @@ pub extern fn cbox_session_init_from_prekey
         let sid     = try_unwrap!(to_str(*c_sid));
         let prekey  = try_unwrap!(to_slice(*c_prekey, c_prekey_len as usize));
         let session = try_unwrap!(cbox.session_from_prekey(String::from(sid), prekey));
-        assign(*out, Box::new(session));
+        assign(*out, Box::into_raw(Box::new(session)));
         CBoxResult::Success
     })
 }
@@ -198,8 +198,8 @@ pub extern fn cbox_session_init_from_message
         let sid    = try_unwrap!(to_str(*c_sid));
         let env    = try_unwrap!(to_slice(*c_cipher, c_cipher_len as usize));
         let (s, v) = try_unwrap!(cbox.session_from_message(String::from(sid), env));
-        assign(*c_plain, Box::new(v));
-        assign(*c_sess, Box::new(s));
+        assign(*c_plain, Box::into_raw(Box::new(v)));
+        assign(*c_sess, Box::into_raw(Box::new(s)));
         CBoxResult::Success
     })
 }
@@ -218,7 +218,7 @@ pub extern fn cbox_session_load
             None    => return CBoxResult::SessionNotFound,
             Some(s) => s
         };
-        assign(*out, Box::new(session));
+        assign(*out, Box::into_raw(Box::new(session)));
         CBoxResult::Success
     })
 }
@@ -244,7 +244,7 @@ pub extern fn cbox_encrypt
     recover(move || {
         let plain  = try_unwrap!(to_slice(*c_plain, c_plain_len as usize));
         let cipher = try_unwrap!(session.encrypt(plain));
-        assign(*out, Box::new(cipher));
+        assign(*out, Box::into_raw(Box::new(cipher)));
         CBoxResult::Success
     })
 }
@@ -261,7 +261,7 @@ pub extern fn cbox_decrypt
     recover(move || {
         let env   = try_unwrap!(to_slice(*c_cipher, c_cipher_len as usize));
         let plain = try_unwrap!(session.decrypt(env));
-        assign(*out, Box::new(plain));
+        assign(*out, Box::into_raw(Box::new(plain)));
         CBoxResult::Success
     })
 }
@@ -272,7 +272,7 @@ fn cbox_fingerprint_local(b: &'static CBox<FileStore>, out: *mut *mut Vec<u8>) -
     let out = AssertPanicSafe(out);
     recover(move || {
         let fp = b.fingerprint().into_bytes();
-        assign(*out, Box::new(fp));
+        assign(*out, Box::into_raw(Box::new(fp)));
         CBoxResult::Success
     })
 }
@@ -283,7 +283,20 @@ fn cbox_fingerprint_remote(session: &'static CBoxSession<'static, FileStore>, ou
     let out = AssertPanicSafe(out);
     recover(move || {
         let fp = session.fingerprint_remote().into_bytes();
-        assign(*out, Box::new(fp));
+        assign(*out, Box::into_raw(Box::new(fp)));
+        CBoxResult::Success
+    })
+}
+
+#[no_mangle]
+pub extern
+fn cbox_is_prekey(c_prekey: *const uint8_t, c_prekey_len: size_t, id: *mut uint16_t) -> CBoxResult {
+    let c_prekey = AssertPanicSafe(c_prekey);
+    let id       = AssertPanicSafe(id);
+    recover(move || {
+        let prekey = try_unwrap!(to_slice(*c_prekey, c_prekey_len as usize));
+        let prekey = try_unwrap!(PreKeyBundle::deserialise(prekey));
+        assign(*id, prekey.prekey_id.value());
         CBoxResult::Success
     })
 }
@@ -328,8 +341,8 @@ fn to_slice<'r, A>(xs: *const A, len: usize) -> Result<&'r [A], CBoxResult> {
     unsafe { Ok(slice::from_raw_parts(xs, len)) }
 }
 
-fn assign<A>(to: *mut *mut A, from: Box<A>) {
-    unsafe { *to = Box::into_raw(from) }
+fn assign<A>(to: *mut A, from: A) {
+    unsafe { *to = from }
 }
 
 // CBoxResult ///////////////////////////////////////////////////////////////
