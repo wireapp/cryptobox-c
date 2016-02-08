@@ -22,7 +22,7 @@ extern crate proteus;
 use cryptobox::{CBox, CBoxError, CBoxSession, Identity, IdentityMode};
 use cryptobox::store::Store;
 use cryptobox::store::file::FileStore;
-use libc::{c_char, c_ushort, size_t, uint8_t};
+use libc::{c_char, c_ushort, size_t, uint8_t, uint16_t};
 use proteus::{DecodeError, EncodeError};
 use proteus::keys::{self, PreKeyId, PreKeyBundle};
 use proteus::session::DecryptError;
@@ -149,7 +149,7 @@ pub static CBOX_LAST_PREKEY_ID: c_ushort = u16::MAX;
 
 #[no_mangle]
 pub extern
-fn cbox_new_prekey(cbox: &'static CBox<FileStore>, pkid: c_ushort, out: *mut *mut Vec<u8>) -> CBoxResult {
+fn cbox_new_prekey(cbox: &'static CBox<FileStore>, pkid: uint16_t, out: *mut *mut Vec<u8>) -> CBoxResult {
     let out  = AssertPanicSafe(out);
     recover(move || {
         let bundle = try_unwrap!(cbox.new_prekey(PreKeyId::new(pkid)));
@@ -290,13 +290,13 @@ fn cbox_fingerprint_remote(session: &'static CBoxSession<'static, FileStore>, ou
 
 #[no_mangle]
 pub extern
-fn cbox_is_prekey_bundle(c_prekey: *const uint8_t, c_prekey_len: size_t, out: *mut uint8_t) -> CBoxResult {
+fn cbox_is_prekey(c_prekey: *const uint8_t, c_prekey_len: size_t, id: *mut uint16_t) -> CBoxResult {
     let c_prekey = AssertPanicSafe(c_prekey);
-    let out      = AssertPanicSafe(out);
+    let id       = AssertPanicSafe(id);
     recover(move || {
         let prekey = try_unwrap!(to_slice(*c_prekey, c_prekey_len as usize));
-        let okay   = PreKeyBundle::deserialise(prekey).is_ok();
-        assign(*out, if okay { 1 } else { 0 });
+        let prekey = try_unwrap!(PreKeyBundle::deserialise(prekey));
+        assign(*id, prekey.prekey_id.value());
         CBoxResult::Success
     })
 }
