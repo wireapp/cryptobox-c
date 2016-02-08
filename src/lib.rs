@@ -78,7 +78,7 @@ fn cbox_file_open_with(c_path:   *const c_char,
     let out    = AssertPanicSafe(out);
     recover(move || {
         let path     = try_unwrap!(to_str(*c_path));
-        let id_slice = try_unwrap!(to_slice(*c_id, c_id_len as usize));
+        let id_slice = to_slice(*c_id, c_id_len as usize);
         let ident    = match try_unwrap!(Identity::deserialise(id_slice)) {
             Identity::Sec(i) => i.into_owned(),
             Identity::Pub(_) => return CBoxResult::IdentityError
@@ -174,7 +174,7 @@ pub extern fn cbox_session_init_from_prekey
     let out      = AssertPanicSafe(out);
     recover(move || {
         let sid     = try_unwrap!(to_str(*c_sid));
-        let prekey  = try_unwrap!(to_slice(*c_prekey, c_prekey_len as usize));
+        let prekey  = to_slice(*c_prekey, c_prekey_len as usize);
         let session = try_unwrap!(cbox.session_from_prekey(String::from(sid), prekey));
         assign(*out, Box::into_raw(Box::new(session)));
         CBoxResult::Success
@@ -196,7 +196,7 @@ pub extern fn cbox_session_init_from_message
     let c_plain  = AssertPanicSafe(c_plain);
     recover(move || {
         let sid    = try_unwrap!(to_str(*c_sid));
-        let env    = try_unwrap!(to_slice(*c_cipher, c_cipher_len as usize));
+        let env    = to_slice(*c_cipher, c_cipher_len as usize);
         let (s, v) = try_unwrap!(cbox.session_from_message(String::from(sid), env));
         assign(*c_plain, Box::into_raw(Box::new(v)));
         assign(*c_sess, Box::into_raw(Box::new(s)));
@@ -242,7 +242,7 @@ pub extern fn cbox_encrypt
     let c_plain = AssertPanicSafe(c_plain);
     let out     = AssertPanicSafe(out);
     recover(move || {
-        let plain  = try_unwrap!(to_slice(*c_plain, c_plain_len as usize));
+        let plain  = to_slice(*c_plain, c_plain_len as usize);
         let cipher = try_unwrap!(session.encrypt(plain));
         assign(*out, Box::into_raw(Box::new(cipher)));
         CBoxResult::Success
@@ -259,7 +259,7 @@ pub extern fn cbox_decrypt
     let c_cipher = AssertPanicSafe(c_cipher);
     let out      = AssertPanicSafe(out);
     recover(move || {
-        let env   = try_unwrap!(to_slice(*c_cipher, c_cipher_len as usize));
+        let env   = to_slice(*c_cipher, c_cipher_len as usize);
         let plain = try_unwrap!(session.decrypt(env));
         assign(*out, Box::into_raw(Box::new(plain)));
         CBoxResult::Success
@@ -294,7 +294,7 @@ fn cbox_is_prekey(c_prekey: *const uint8_t, c_prekey_len: size_t, id: *mut uint1
     let c_prekey = AssertPanicSafe(c_prekey);
     let id       = AssertPanicSafe(id);
     recover(move || {
-        let prekey = try_unwrap!(to_slice(*c_prekey, c_prekey_len as usize));
+        let prekey = to_slice(*c_prekey, c_prekey_len as usize);
         let prekey = try_unwrap!(PreKeyBundle::deserialise(prekey));
         assign(*id, prekey.prekey_id.value());
         CBoxResult::Success
@@ -337,8 +337,8 @@ fn to_str<'r>(s: *const c_char) -> Result<&'r str, str::Utf8Error> {
     unsafe { CStr::from_ptr(s).to_str() }
 }
 
-fn to_slice<'r, A>(xs: *const A, len: usize) -> Result<&'r [A], CBoxResult> {
-    unsafe { Ok(slice::from_raw_parts(xs, len)) }
+fn to_slice<'r, A>(xs: *const A, len: usize) -> &'r [A] {
+    unsafe { slice::from_raw_parts(xs, len) }
 }
 
 fn assign<A>(to: *mut A, from: A) {
