@@ -16,6 +16,8 @@ libc = ">= 0.1.12"
 
 [dependencies.proteus]
 git = "https://github.com/wireapp/proteus"
+branch = "develop"
 
 [dependencies.cryptobox]
 git = "https://github.com/wireapp/cryptobox"
+branch = "develop"
