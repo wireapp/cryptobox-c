@@ -1,3 +1,7 @@
+0.8.3
+-----
+- Compatibility release for Android cross-compiling with 1.6 stable.
+
 0.8.2
 -----
 - Bugfix release.

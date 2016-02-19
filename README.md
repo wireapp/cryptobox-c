@@ -6,7 +6,8 @@
 
 ## Dependencies
 
-[Sodium](https://github.com/jedisct1/libsodium)
+  * [Rust](https://www.rust-lang.org/): 1.6 stable or later
+  * [Sodium](https://github.com/jedisct1/libsodium): 1.0 or later
 
 ## Building
 
