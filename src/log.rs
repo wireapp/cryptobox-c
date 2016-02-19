@@ -36,17 +36,6 @@ mod target {
         log(&format!("{}\0", e), LEVEL_ERROR)
     }
 
-    #[cfg(any(target_arch = "arm", target_arch = "x86"))]
-    fn log(msg: &str, lvl: c_int) -> Result<()> {
-        unsafe {
-            let tag = CStr::from_ptr(TAG.as_ptr() as *const i8);
-            let msg = CStr::from_ptr(msg.as_ptr() as *const i8);
-            __android_log_write(lvl, tag.as_ptr() as *const u8, msg.as_ptr() as *const u8);
-        }
-        Ok(())
-    }
-
-    #[cfg(target_arch = "aarch64")]
     fn log(msg: &str, lvl: c_int) -> Result<()> {
         unsafe {
             let tag = CStr::from_ptr(TAG.as_ptr());
