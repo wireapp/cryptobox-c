@@ -1,6 +1,6 @@
 [package]
 name         = "cryptobox-c"
-version      = "0.8.2"
+version      = "0.8.3"
 authors      = ["Wire Swiss GmbH <support@wire.com>"]
 description  = "C-FFI to cryptobox"
 homepage     = "https://github.com/wireapp/cryptobox-c"
