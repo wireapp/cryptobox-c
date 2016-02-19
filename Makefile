@@ -47,7 +47,6 @@ bench-compile: compile-release
 install: compile-release
 	cp src/cbox.h /usr/local/include
 	cp target/release/libcryptobox.$(LIB_TYPE) /usr/local/lib
-	ln -s /usr/local/lib/libcryptobox.$(LIB_TYPE) /usr/local/lib/libcryptobox.$(LIB_TYPE)
 
 uninstall:
 	rm -f /usr/local/include/cbox.h
