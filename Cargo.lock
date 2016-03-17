@@ -34,7 +34,7 @@ dependencies = [
 [[package]]
 name = "hkdf"
 version = "0.1.0"
-source = "git+https://github.com/wireapp/hkdf#bd8dd71863c1db8fee6df00a60e07d9f23a40a5d"
+source = "git+https://github.com/wireapp/hkdf#088774beaf65228bb130d94358c90feeabc7b624"
 dependencies = [
  "sodiumoxide 0.0.9 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
