@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#![feature(catch_panic)]
+#![feature(recover, std_panic)]
 
 extern crate cryptobox;
 extern crate libc;
@@ -29,10 +29,9 @@ use proteus::session::DecryptError;
 use std::borrow::Cow;
 use std::ffi::CStr;
 use std::fmt;
-use std::ops::{Deref, DerefMut};
 use std::path::Path;
 use std::{slice, str, u16};
-use std::thread::catch_panic;
+use std::panic::{self, AssertRecoverSafe, RecoverSafe};
 
 mod log;
 
@@ -55,12 +54,10 @@ pub enum CBoxIdentityMode {
 #[no_mangle]
 pub extern
 fn cbox_file_open(c_path: *const c_char, out: *mut *mut CBox<FileStore>) -> CBoxResult {
-    let c_path = AssertPanicSafe(c_path);
-    let out    = AssertPanicSafe(out);
-    recover(move || {
-        let path = try_unwrap!(to_str(*c_path));
+    recover(|| {
+        let path = try_unwrap!(to_str(c_path));
         let cbox = try_unwrap!(CBox::file_open(&Path::new(path)));
-        assign(*out, Box::into_raw(Box::new(cbox)));
+        assign(out, Box::into_raw(Box::new(cbox)));
         CBoxResult::Success
     })
 }
@@ -73,12 +70,9 @@ fn cbox_file_open_with(c_path:   *const c_char,
                        c_mode:   CBoxIdentityMode,
                        out:      *mut *mut CBox<FileStore>) -> CBoxResult
 {
-    let c_path = AssertPanicSafe(c_path);
-    let c_id   = AssertPanicSafe(c_id);
-    let out    = AssertPanicSafe(out);
-    recover(move || {
-        let path     = try_unwrap!(to_str(*c_path));
-        let id_slice = to_slice(*c_id, c_id_len as usize);
+    recover(|| {
+        let path     = try_unwrap!(to_str(c_path));
+        let id_slice = to_slice(c_id, c_id_len as usize);
         let ident    = match try_unwrap!(Identity::deserialise(id_slice)) {
             Identity::Sec(i) => i.into_owned(),
             Identity::Pub(_) => return CBoxResult::IdentityError
@@ -88,16 +82,15 @@ fn cbox_file_open_with(c_path:   *const c_char,
             CBoxIdentityMode::Public   => IdentityMode::Public
         };
         let cbox = try_unwrap!(CBox::file_open_with(&Path::new(path), ident, mode));
-        assign(*out, Box::into_raw(Box::new(cbox)));
+        assign(out, Box::into_raw(Box::new(cbox)));
         CBoxResult::Success
     })
 }
 
 #[no_mangle]
 pub extern fn cbox_close(b: *mut CBox<FileStore>) {
-    let b = AssertPanicSafe(b);
-    recover(move || {
-        unsafe { Box::from_raw(*b); }
+    recover(|| {
+        unsafe { Box::from_raw(b); }
         CBoxResult::Success
     });
 }
@@ -105,10 +98,9 @@ pub extern fn cbox_close(b: *mut CBox<FileStore>) {
 #[no_mangle]
 pub extern
 fn cbox_identity_copy(cbox: &'static CBox<FileStore>, out: *mut *mut Vec<u8>) -> CBoxResult {
-    let out = AssertPanicSafe(out);
-    recover(move || {
+    recover(|| {
         let i = try_unwrap!(Identity::Sec(Cow::Borrowed(cbox.identity())).serialise());
-        assign(*out, Box::into_raw(Box::new(i)));
+        assign(out, Box::into_raw(Box::new(i)));
         CBoxResult::Success
     })
 }
@@ -116,8 +108,9 @@ fn cbox_identity_copy(cbox: &'static CBox<FileStore>, out: *mut *mut Vec<u8>) ->
 #[no_mangle]
 pub extern
 fn cbox_session_save(cbox: &'static CBox<FileStore>, s: &'static mut CBoxSession<'static, FileStore>) -> CBoxResult {
+    let mut s = AssertRecoverSafe(s);
     recover(move || {
-        try_unwrap!(cbox.session_save(s));
+        try_unwrap!(cbox.session_save(&mut s));
         CBoxResult::Success
     })
 }
@@ -125,9 +118,8 @@ fn cbox_session_save(cbox: &'static CBox<FileStore>, s: &'static mut CBoxSession
 #[no_mangle]
 pub extern
 fn cbox_session_delete(cbox: &'static CBox<FileStore>, c_sid: *const c_char) -> CBoxResult {
-    let c_sid = AssertPanicSafe(c_sid);
-    recover(move || {
-        let sid = try_unwrap!(to_str(*c_sid));
+    recover(|| {
+        let sid = try_unwrap!(to_str(c_sid));
         try_unwrap!(cbox.session_delete(sid));
         CBoxResult::Success
     })
@@ -135,9 +127,8 @@ fn cbox_session_delete(cbox: &'static CBox<FileStore>, c_sid: *const c_char) -> 
 
 #[no_mangle]
 pub extern fn cbox_random_bytes(_: &CBox<FileStore>, n: size_t, out: *mut *mut Vec<u8>) -> CBoxResult {
-    let out = AssertPanicSafe(out);
-    recover(move || {
-        assign(*out, Box::into_raw(Box::new(keys::rand_bytes(n as usize))));
+    recover(|| {
+        assign(out, Box::into_raw(Box::new(keys::rand_bytes(n as usize))));
         CBoxResult::Success
     })
 }
@@ -150,11 +141,10 @@ pub static CBOX_LAST_PREKEY_ID: c_ushort = u16::MAX;
 #[no_mangle]
 pub extern
 fn cbox_new_prekey(cbox: &'static CBox<FileStore>, pkid: uint16_t, out: *mut *mut Vec<u8>) -> CBoxResult {
-    let out  = AssertPanicSafe(out);
-    recover(move || {
+    recover(|| {
         let bundle = try_unwrap!(cbox.new_prekey(PreKeyId::new(pkid)));
         let bytes  = try_unwrap!(bundle.serialise());
-        assign(*out, Box::into_raw(Box::new(bytes)));
+        assign(out, Box::into_raw(Box::new(bytes)));
         CBoxResult::Success
     })
 }
@@ -169,14 +159,11 @@ pub extern fn cbox_session_init_from_prekey
      c_prekey_len: size_t,
      out:          *mut *mut CBoxSession<'static, FileStore>) -> CBoxResult
 {
-    let c_sid    = AssertPanicSafe(c_sid);
-    let c_prekey = AssertPanicSafe(c_prekey);
-    let out      = AssertPanicSafe(out);
-    recover(move || {
-        let sid     = try_unwrap!(to_str(*c_sid));
-        let prekey  = to_slice(*c_prekey, c_prekey_len as usize);
+    recover(|| {
+        let sid     = try_unwrap!(to_str(c_sid));
+        let prekey  = to_slice(c_prekey, c_prekey_len as usize);
         let session = try_unwrap!(cbox.session_from_prekey(String::from(sid), prekey));
-        assign(*out, Box::into_raw(Box::new(session)));
+        assign(out, Box::into_raw(Box::new(session)));
         CBoxResult::Success
     })
 }
@@ -190,16 +177,12 @@ pub extern fn cbox_session_init_from_message
      c_sess:       *mut *mut CBoxSession<'static, FileStore>,
      c_plain:      *mut *mut Vec<u8>) -> CBoxResult
 {
-    let c_sid    = AssertPanicSafe(c_sid);
-    let c_cipher = AssertPanicSafe(c_cipher);
-    let c_sess   = AssertPanicSafe(c_sess);
-    let c_plain  = AssertPanicSafe(c_plain);
-    recover(move || {
-        let sid    = try_unwrap!(to_str(*c_sid));
-        let env    = to_slice(*c_cipher, c_cipher_len as usize);
+    recover(|| {
+        let sid    = try_unwrap!(to_str(c_sid));
+        let env    = to_slice(c_cipher, c_cipher_len as usize);
         let (s, v) = try_unwrap!(cbox.session_from_message(String::from(sid), env));
-        assign(*c_plain, Box::into_raw(Box::new(v)));
-        assign(*c_sess, Box::into_raw(Box::new(s)));
+        assign(c_plain, Box::into_raw(Box::new(v)));
+        assign(c_sess, Box::into_raw(Box::new(s)));
         CBoxResult::Success
     })
 }
@@ -210,24 +193,21 @@ pub extern fn cbox_session_load
      c_sid: *const c_char,
      out:   *mut *mut CBoxSession<'static, FileStore>) -> CBoxResult
 {
-    let c_sid = AssertPanicSafe(c_sid);
-    let out   = AssertPanicSafe(out);
-    recover(move || {
-        let sid     = try_unwrap!(to_str(*c_sid));
+    recover(|| {
+        let sid     = try_unwrap!(to_str(c_sid));
         let session = match try_unwrap!(cbox.session_load(String::from(sid))) {
             None    => return CBoxResult::SessionNotFound,
             Some(s) => s
         };
-        assign(*out, Box::into_raw(Box::new(session)));
+        assign(out, Box::into_raw(Box::new(session)));
         CBoxResult::Success
     })
 }
 
 #[no_mangle]
 pub extern fn cbox_session_close(b: *mut CBoxSession<'static, FileStore>) {
-    let b = AssertPanicSafe(b);
-    recover(move || {
-        unsafe { Box::from_raw(*b); }
+    recover(|| {
+        unsafe { Box::from_raw(b); }
         CBoxResult::Success
     });
 }
@@ -239,12 +219,11 @@ pub extern fn cbox_encrypt
      c_plain_len: size_t,
      out:         *mut *mut Vec<u8>) -> CBoxResult
 {
-    let c_plain = AssertPanicSafe(c_plain);
-    let out     = AssertPanicSafe(out);
+    let mut s = AssertRecoverSafe(session);
     recover(move || {
-        let plain  = to_slice(*c_plain, c_plain_len as usize);
-        let cipher = try_unwrap!(session.encrypt(plain));
-        assign(*out, Box::into_raw(Box::new(cipher)));
+        let plain  = to_slice(c_plain, c_plain_len as usize);
+        let cipher = try_unwrap!(s.encrypt(plain));
+        assign(out, Box::into_raw(Box::new(cipher)));
         CBoxResult::Success
     })
 }
@@ -256,12 +235,11 @@ pub extern fn cbox_decrypt
      c_cipher_len: size_t,
      out:          *mut *mut Vec<u8>) -> CBoxResult
 {
-    let c_cipher = AssertPanicSafe(c_cipher);
-    let out      = AssertPanicSafe(out);
+    let mut s = AssertRecoverSafe(session);
     recover(move || {
-        let env   = to_slice(*c_cipher, c_cipher_len as usize);
-        let plain = try_unwrap!(session.decrypt(env));
-        assign(*out, Box::into_raw(Box::new(plain)));
+        let env   = to_slice(c_cipher, c_cipher_len as usize);
+        let plain = try_unwrap!(s.decrypt(env));
+        assign(out, Box::into_raw(Box::new(plain)));
         CBoxResult::Success
     })
 }
@@ -269,10 +247,9 @@ pub extern fn cbox_decrypt
 #[no_mangle]
 pub extern
 fn cbox_fingerprint_local(b: &'static CBox<FileStore>, out: *mut *mut Vec<u8>) -> CBoxResult {
-    let out = AssertPanicSafe(out);
-    recover(move || {
+    recover(|| {
         let fp = b.fingerprint().into_bytes();
-        assign(*out, Box::into_raw(Box::new(fp)));
+        assign(out, Box::into_raw(Box::new(fp)));
         CBoxResult::Success
     })
 }
@@ -280,10 +257,9 @@ fn cbox_fingerprint_local(b: &'static CBox<FileStore>, out: *mut *mut Vec<u8>) -
 #[no_mangle]
 pub extern
 fn cbox_fingerprint_remote(session: &'static CBoxSession<'static, FileStore>, out: *mut *mut Vec<u8>) -> CBoxResult {
-    let out = AssertPanicSafe(out);
-    recover(move || {
+    recover(|| {
         let fp = session.fingerprint_remote().into_bytes();
-        assign(*out, Box::into_raw(Box::new(fp)));
+        assign(out, Box::into_raw(Box::new(fp)));
         CBoxResult::Success
     })
 }
@@ -291,12 +267,10 @@ fn cbox_fingerprint_remote(session: &'static CBoxSession<'static, FileStore>, ou
 #[no_mangle]
 pub extern
 fn cbox_is_prekey(c_prekey: *const uint8_t, c_prekey_len: size_t, id: *mut uint16_t) -> CBoxResult {
-    let c_prekey = AssertPanicSafe(c_prekey);
-    let id       = AssertPanicSafe(id);
-    recover(move || {
-        let prekey = to_slice(*c_prekey, c_prekey_len as usize);
+    recover(|| {
+        let prekey = to_slice(c_prekey, c_prekey_len as usize);
         let prekey = try_unwrap!(PreKeyBundle::deserialise(prekey));
-        assign(*id, prekey.prekey_id.value());
+        assign(id, prekey.prekey_id.value());
         CBoxResult::Success
     })
 }
@@ -397,29 +371,9 @@ impl From<EncodeError> for CBoxResult {
     }
 }
 
-// catch_panic helpers //////////////////////////////////////////////////////
-
-fn recover<F>(f: F) -> CBoxResult where F: FnOnce() -> CBoxResult + Send + 'static {
-    match catch_panic(f) {
+fn recover<F>(f: F) -> CBoxResult where F: FnOnce() -> CBoxResult + RecoverSafe {
+    match panic::recover(f) {
         Ok(x)  => x,
         Err(_) => CBoxResult::Panic
-    }
-}
-
-struct AssertPanicSafe<T>(pub T);
-
-unsafe impl<T> Send for AssertPanicSafe<T> {}
-
-impl<T> Deref for AssertPanicSafe<T> {
-    type Target = T;
-
-    fn deref(&self) -> &T {
-        &self.0
-    }
-}
-
-impl<T> DerefMut for AssertPanicSafe<T> {
-    fn deref_mut(&mut self) -> &mut T {
-        &mut self.0
     }
 }
