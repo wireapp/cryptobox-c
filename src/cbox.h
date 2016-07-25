@@ -13,8 +13,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef __CRYPTOBOX_H__
-#define __CRYPTOBOX_H__
+#ifndef CRYPTOBOX_H
+#define CRYPTOBOX_H
 
 #include <stdint.h>
 
@@ -317,4 +317,4 @@ CBoxResult cbox_is_prekey(uint8_t const * prekey, size_t prekey_len, uint16_t * 
 }
 #endif
 
-#endif // __CRYPTOBOX_H__
+#endif // CRYPTOBOX_H
