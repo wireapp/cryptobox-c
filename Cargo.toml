@@ -9,7 +9,7 @@ license      = "GPL-3.0"
 
 [lib]
 name         = "cryptobox"
-crate-type   = ["dylib"]
+crate-type   = ["cdylib"]
 
 [dependencies]
 libc = ">= 0.1.12"
