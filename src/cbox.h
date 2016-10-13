@@ -96,6 +96,10 @@ typedef enum {
 
     // An unknown critical error was encountered which prevented the
     // computation from succeeding.
+    //
+    // Nb. If a `CBOX_PANIC` has been returned from an API operation,
+    // any further use of the `CBox` or any `CBoxSession` results in
+    // undefined behaviour!
     CBOX_PANIC                   = 15
 } CBoxResult;
 
