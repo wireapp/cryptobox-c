@@ -81,8 +81,8 @@ void test_basics(CBox * alice_box, CBox * bob_box) {
     cbox_vec_free(local);
 
     // Load the sessions again
-    cbox_session_close(alice);
-    cbox_session_close(bob);
+    cbox_session_close(alice_box, alice);
+    cbox_session_close(bob_box, bob);
     rc = cbox_session_load(alice_box, "alice", &alice);
     assert(rc == CBOX_SUCCESS);
     rc = cbox_session_load(bob_box, "bob", &bob);
@@ -98,8 +98,8 @@ void test_basics(CBox * alice_box, CBox * bob_box) {
     cbox_vec_free(plain);
     cbox_vec_free(bob_prekey);
 
-    cbox_session_close(alice);
-    cbox_session_close(bob);
+    cbox_session_close(alice_box, alice);
+    cbox_session_close(bob_box, bob);
 
     printf("OK\n");
 }
@@ -130,7 +130,7 @@ void test_prekey_removal(CBox * alice_box, CBox * bob_box) {
 
     // Pretend something happened before Bob could save his session and he retries.
     // The prekey should not be removed (yet).
-    cbox_session_close(bob);
+    cbox_session_close(bob_box, bob);
     cbox_vec_free(plain);
     rc = cbox_session_init_from_message(bob_box, "bob", cbox_vec_data(cipher), cbox_vec_len(cipher), &bob, &plain);
     assert(rc == CBOX_SUCCESS);
@@ -138,7 +138,7 @@ void test_prekey_removal(CBox * alice_box, CBox * bob_box) {
     cbox_session_save(bob_box, bob);
 
     // Now the prekey should be gone
-    cbox_session_close(bob);
+    cbox_session_close(bob_box, bob);
     cbox_vec_free(plain);
     rc = cbox_session_init_from_message(bob_box, "bob", cbox_vec_data(cipher), cbox_vec_len(cipher), &bob, &plain);
     assert(rc == CBOX_PREKEY_NOT_FOUND);
@@ -146,7 +146,7 @@ void test_prekey_removal(CBox * alice_box, CBox * bob_box) {
     // Cleanup
     cbox_vec_free(bob_prekey);
     cbox_vec_free(cipher);
-    cbox_session_close(alice);
+    cbox_session_close(alice_box, alice);
 
     printf("OK\n");
 }
@@ -209,7 +209,7 @@ void test_last_prekey(CBox * alice_box, CBox * bob_box) {
     assert(rc == CBOX_SUCCESS);
 
     cbox_session_save(bob_box, bob);
-    cbox_session_close(bob);
+    cbox_session_close(bob_box, bob);
     cbox_vec_free(plain);
 
     // Bob's last prekey is not removed
@@ -218,8 +218,8 @@ void test_last_prekey(CBox * alice_box, CBox * bob_box) {
 
     cbox_vec_free(plain);
     cbox_vec_free(cipher);
-    cbox_session_close(alice);
-    cbox_session_close(bob);
+    cbox_session_close(alice_box, alice);
+    cbox_session_close(bob_box, bob);
     printf("OK\n");
 }
 
@@ -250,8 +250,8 @@ void test_duplicate_msg(CBox * alice_box, CBox * bob_box) {
     assert(rc == CBOX_DUPLICATE_MESSAGE);
 
     cbox_vec_free(cipher);
-    cbox_session_close(alice);
-    cbox_session_close(bob);
+    cbox_session_close(alice_box, alice);
+    cbox_session_close(bob_box, bob);
     printf("OK\n");
 }
 
@@ -268,7 +268,7 @@ void test_delete_session(CBox * alice_box, CBox * bob_box) {
 
     rc = cbox_session_save(alice_box, alice);
     assert(rc == CBOX_SUCCESS);
-    cbox_session_close(alice);
+    cbox_session_close(alice_box, alice);
 
     rc = cbox_session_delete(alice_box, "alice");
     assert(rc == CBOX_SUCCESS);

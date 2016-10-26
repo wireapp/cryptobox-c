@@ -19,7 +19,7 @@ extern crate proteus;
 
 use cryptobox::{CBox, CBoxError, CBoxSession, Identity, IdentityMode};
 use cryptobox::store::Store;
-use cryptobox::store::file::FileStore;
+use cryptobox::store::file::{FileStore, FileStoreError};
 use libc::{c_char, c_ushort, size_t, uint8_t, uint16_t};
 use proteus::{DecodeError, EncodeError};
 use proteus::keys::{self, PreKeyId, PreKeyBundle};
@@ -28,7 +28,6 @@ use std::borrow::Cow;
 use std::ffi::CStr;
 use std::fmt;
 use std::mem;
-use std::path::Path;
 use std::{slice, str, u16};
 use std::panic::{self, UnwindSafe};
 
@@ -54,8 +53,9 @@ pub enum CBoxIdentityMode {
 pub extern
 fn cbox_file_open(c_path: *const c_char, out: *mut *mut CBox<FileStore>) -> CBoxResult {
     catch_unwind(|| {
-        let path = try_unwrap!(to_str(c_path, 4096));
-        let cbox = try_unwrap!(CBox::file_open(&Path::new(path)));
+        let path  = try_unwrap!(to_str(c_path, 4096));
+        let store = try_unwrap!(FileStore::new(path));
+        let cbox  = try_unwrap!(CBox::open(store));
         assign(out, Box::into_raw(Box::new(cbox)));
         CBoxResult::Success
     })
@@ -80,7 +80,8 @@ fn cbox_file_open_with(c_path:   *const c_char,
             CBoxIdentityMode::Complete => IdentityMode::Complete,
             CBoxIdentityMode::Public   => IdentityMode::Public
         };
-        let cbox = try_unwrap!(CBox::file_open_with(&Path::new(path), ident, mode));
+        let store = try_unwrap!(FileStore::new(path));
+        let cbox  = try_unwrap!(CBox::open_with(store, ident, mode));
         assign(out, Box::into_raw(Box::new(cbox)));
         CBoxResult::Success
     })
@@ -107,9 +108,9 @@ fn cbox_identity_copy(cbox: *const CBox<FileStore>, out: *mut *mut Vec<u8>) -> C
 
 #[no_mangle]
 pub extern
-fn cbox_session_save(b: *const CBox<FileStore>, s: *mut CBoxSession<FileStore>) -> CBoxResult {
+fn cbox_session_save(_: *const CBox<FileStore>, s: *const CBoxSession<FileStore>) -> CBoxResult {
     catch_unwind(move || {
-        try_unwrap!(ptr2ref(b).session_save(ptr2mut(s)));
+        try_unwrap!(ptr2ref(s).save());
         CBoxResult::Success
     })
 }
@@ -160,7 +161,8 @@ pub extern fn cbox_session_init_from_prekey
 {
     catch_unwind(|| {
         let sid     = try_unwrap!(to_str(c_sid, 1024));
-        let prekey  = to_slice(c_prekey, c_prekey_len);
+        let bytes   = to_slice(c_prekey, c_prekey_len);
+        let prekey  = try_unwrap!(PreKeyBundle::deserialise(bytes));
         let session = try_unwrap!(ptr2ref(cbox).session_from_prekey(String::from(sid), prekey));
         assign(out, Box::into_raw(Box::new(session)));
         CBoxResult::Success
@@ -179,7 +181,7 @@ pub extern fn cbox_session_init_from_message
     catch_unwind(|| {
         let sid    = try_unwrap!(to_str(c_sid, 1024));
         let env    = to_slice(c_cipher, c_cipher_len);
-        let (s, v) = try_unwrap!(ptr2ref(cbox).session_from_message(String::from(sid), env));
+        let (s, v) = try_unwrap!(ptr2ref(cbox).session_from_message(sid, env));
         assign(c_plain, Box::into_raw(Box::new(v)));
         assign(c_sess, Box::into_raw(Box::new(s)));
         CBoxResult::Success
@@ -194,7 +196,7 @@ pub extern fn cbox_session_load
 {
     catch_unwind(|| {
         let sid     = try_unwrap!(to_str(c_sid, 1024));
-        let session = match try_unwrap!(ptr2ref(cbox).session_load(String::from(sid))) {
+        let session = match try_unwrap!(ptr2ref(cbox).session(sid)) {
             None    => return CBoxResult::SessionNotFound,
             Some(s) => s
         };
@@ -204,24 +206,25 @@ pub extern fn cbox_session_load
 }
 
 #[no_mangle]
-pub extern fn cbox_session_close(b: *mut CBoxSession<FileStore>) {
-    debug_assert!(!b.is_null());
+pub extern fn cbox_session_close(b: *const CBox<FileStore>, s: *mut CBoxSession<FileStore>) {
+    debug_assert!(!s.is_null());
     catch_unwind(|| {
-        unsafe { Box::from_raw(b); }
+        let session = unsafe { Box::from_raw(s) };
+        ptr2ref(b).session_close(session.as_ref());
         CBoxResult::Success
     });
 }
 
 #[no_mangle]
 pub extern fn cbox_encrypt
-    (session:     *mut CBoxSession<FileStore>,
+    (session:     *const CBoxSession<FileStore>,
      c_plain:     *const uint8_t,
      c_plain_len: size_t,
      out:         *mut *mut Vec<u8>) -> CBoxResult
 {
     catch_unwind(move || {
         let plain  = to_slice(c_plain, c_plain_len);
-        let cipher = try_unwrap!(ptr2mut(session).encrypt(plain));
+        let cipher = try_unwrap!(ptr2ref(session).encrypt(plain));
         assign(out, Box::into_raw(Box::new(cipher)));
         CBoxResult::Success
     })
@@ -229,14 +232,14 @@ pub extern fn cbox_encrypt
 
 #[no_mangle]
 pub extern fn cbox_decrypt
-    (session:      *mut CBoxSession<FileStore>,
+    (session:      *const CBoxSession<FileStore>,
      c_cipher:     *const uint8_t,
      c_cipher_len: size_t,
      out:          *mut *mut Vec<u8>) -> CBoxResult
 {
     catch_unwind(move || {
         let env   = to_slice(c_cipher, c_cipher_len);
-        let plain = try_unwrap!(ptr2mut(session).decrypt(env));
+        let plain = try_unwrap!(ptr2ref(session).decrypt(env));
         assign(out, Box::into_raw(Box::new(plain)));
         CBoxResult::Success
     })
@@ -327,12 +330,6 @@ fn ptr2ref<'a, A>(p: *const A) -> &'a A {
     unsafe { &*p }
 }
 
-#[inline]
-fn ptr2mut<'a, A>(p: *mut A) -> &'a mut A {
-    debug_assert!(!p.is_null());
-    unsafe { &mut *p }
-}
-
 // CBoxResult ///////////////////////////////////////////////////////////////
 
 #[repr(C)]
@@ -356,7 +353,8 @@ pub enum CBoxResult {
     PreKeyNotFound        = 14,
     Panic                 = 15,
     InitError             = 16,
-    DegeneratedKey        = 17
+    DegeneratedKey        = 17,
+    SessionClosed         = 18
 }
 
 impl<S: Store + fmt::Debug> From<CBoxError<S>> for CBoxResult {
@@ -376,8 +374,16 @@ impl<S: Store + fmt::Debug> From<CBoxError<S>> for CBoxResult {
             CBoxError::DecodeError(_)                                      => CBoxResult::DecodeError,
             CBoxError::EncodeError(_)                                      => CBoxResult::EncodeError,
             CBoxError::IdentityError                                       => CBoxResult::IdentityError,
-            CBoxError::InitError                                           => CBoxResult::InitError
+            CBoxError::InitError                                           => CBoxResult::InitError,
+            CBoxError::SessionClosed                                       => CBoxResult::SessionClosed
         }
+    }
+}
+
+impl From<FileStoreError> for CBoxResult {
+    fn from(e: FileStoreError) -> CBoxResult {
+        let _ = log::error(&e);
+        CBoxResult::StorageError
     }
 }
 

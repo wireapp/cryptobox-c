@@ -108,7 +108,10 @@ typedef enum {
     CBOX_INIT_ERROR              = 16,
 
     // Unsafe key material was used.
-    CBOX_DEGENERATED_KEY         = 17
+    CBOX_DEGENERATED_KEY         = 17,
+
+    // A closed cbox session value was used
+    CBOX_SESSION_CLOSED          = 18
 
 } CBoxResult;
 
@@ -257,12 +260,12 @@ CBoxResult cbox_session_load(CBox const * b, char const * sid, CBoxSession ** s)
 // a peer, as well as after decrypting one or more received messages.
 // ---
 // `s` is the session to save.
-CBoxResult cbox_session_save(CBox const * b, CBoxSession * s);
+CBoxResult cbox_session_save(CBox const * b, CBoxSession const * s);
 
 // Close a session, freeing the memory associated with it.
 //
 // After a session has been closed, it must no longer be used.
-void cbox_session_close(CBoxSession * s);
+void cbox_session_close(CBox const * b, CBoxSession * s);
 
 // Delete an existing session.
 //
@@ -275,7 +278,7 @@ CBoxResult cbox_session_delete(CBox const * b, char const * sid);
 // `plain` is the plaintext to encrypt.
 // `plain_len` is the length of `plain`.
 // `cipher` is the pointer to point at the resulting ciphertext.
-CBoxResult cbox_encrypt(CBoxSession * s,
+CBoxResult cbox_encrypt(CBoxSession const * s,
                         uint8_t const * plain,
                         size_t plain_len,
                         CBoxVec ** cipher);
@@ -286,7 +289,7 @@ CBoxResult cbox_encrypt(CBoxSession * s,
 // `cipher` is the ciphertext to decrypt.
 // `cipher_len` is the length of `cipher`.
 // `plain` is the pointer to point at the resulting plaintext.
-CBoxResult cbox_decrypt(CBoxSession * s,
+CBoxResult cbox_decrypt(CBoxSession const * s,
                         uint8_t const * cipher,
                         size_t cipher_len,
                         CBoxVec ** plain);

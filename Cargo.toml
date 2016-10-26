@@ -12,6 +12,6 @@ name         = "cryptobox"
 crate-type   = ["cdylib"]
 
 [dependencies]
-cryptobox = { git = "https://github.com/wireapp/cryptobox", branch = "develop" }
+cryptobox = { git = "https://github.com/wireapp/cryptobox", branch = "reshuffle2" }
 libc      = ">= 0.1.12"
 proteus   = { git = "https://github.com/wireapp/proteus", branch = "develop" }
