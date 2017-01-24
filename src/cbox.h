@@ -100,7 +100,13 @@ typedef enum {
     // Nb. If a `CBOX_PANIC` has been returned from an API operation,
     // any further use of the `CBox` or any `CBoxSession` results in
     // undefined behaviour!
-    CBOX_PANIC                   = 15
+    CBOX_PANIC                   = 15,
+
+    // Failure to initialise proteus/libsodium. Client code should not
+    // proceed after encountering this error (which can only happen
+    // when opening a cbox).
+    CBOX_INIT_ERROR              = 16
+
 } CBoxResult;
 
 // CBoxIdentityMode /////////////////////////////////////////////////////////
