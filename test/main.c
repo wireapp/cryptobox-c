@@ -48,11 +48,12 @@ void test_basics(CBox * alice_box, CBox * bob_box) {
     assert(rc == CBOX_SUCCESS);
     rc = cbox_session_save(alice_box, alice);
     assert(rc == CBOX_SUCCESS);
-    uint8_t const hello_bob[] = "Hello Bob!";
+    char const * hello_bob = "Hello Bob!";
+    size_t hello_bob_len = strlen(hello_bob);
     CBoxVec * cipher = NULL;
-    rc = cbox_encrypt(alice, hello_bob, sizeof(hello_bob), &cipher);
+    rc = cbox_encrypt(alice, (uint8_t const *) hello_bob, hello_bob_len, &cipher);
     assert(rc == CBOX_SUCCESS);
-    assert(strncmp((char const *) hello_bob, (char const *) cbox_vec_data(cipher), cbox_vec_len(cipher)) != 0);
+    assert(strncmp(hello_bob, (char const *) cbox_vec_data(cipher), hello_bob_len) != 0);
 
     // Bob
     CBoxSession * bob = NULL;
@@ -61,7 +62,7 @@ void test_basics(CBox * alice_box, CBox * bob_box) {
     assert(rc == CBOX_SUCCESS);
     cbox_session_save(bob_box, bob);
 
-    assert(strncmp((char const *) hello_bob, (char const *) cbox_vec_data(plain), cbox_vec_len(plain)) == 0);
+    assert(strncmp(hello_bob, (char const *) cbox_vec_data(plain), hello_bob_len) == 0);
 
     // Compare fingerprints
     CBoxVec * local = NULL;
