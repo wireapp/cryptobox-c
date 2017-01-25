@@ -105,7 +105,10 @@ typedef enum {
     // Failure to initialise proteus/libsodium. Client code should not
     // proceed after encountering this error (which can only happen
     // when opening a cbox).
-    CBOX_INIT_ERROR              = 16
+    CBOX_INIT_ERROR              = 16,
+
+    // Unsafe key material was used.
+    CBOX_DEGENERATED_KEY         = 17
 
 } CBoxResult;
 

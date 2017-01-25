@@ -23,7 +23,7 @@ use cryptobox::store::file::FileStore;
 use libc::{c_char, c_ushort, size_t, uint8_t, uint16_t};
 use proteus::{DecodeError, EncodeError};
 use proteus::keys::{self, PreKeyId, PreKeyBundle};
-use proteus::session::DecryptError;
+use proteus::session;
 use std::borrow::Cow;
 use std::ffi::CStr;
 use std::fmt;
@@ -355,26 +355,28 @@ pub enum CBoxResult {
     IdentityError         = 13,
     PreKeyNotFound        = 14,
     Panic                 = 15,
-    InitError             = 16
+    InitError             = 16,
+    DegeneratedKey        = 17
 }
 
 impl<S: Store + fmt::Debug> From<CBoxError<S>> for CBoxResult {
     fn from(e: CBoxError<S>) -> CBoxResult {
         let _ = log::error(&e);
         match e {
-            CBoxError::DecryptError(DecryptError::RemoteIdentityChanged) => CBoxResult::RemoteIdentityChanged,
-            CBoxError::DecryptError(DecryptError::InvalidSignature)      => CBoxResult::InvalidSignature,
-            CBoxError::DecryptError(DecryptError::InvalidMessage)        => CBoxResult::InvalidMessage,
-            CBoxError::DecryptError(DecryptError::DuplicateMessage)      => CBoxResult::DuplicateMessage,
-            CBoxError::DecryptError(DecryptError::TooDistantFuture)      => CBoxResult::TooDistantFuture,
-            CBoxError::DecryptError(DecryptError::OutdatedMessage)       => CBoxResult::OutdatedMessage,
-            CBoxError::DecryptError(DecryptError::PreKeyNotFound(_))     => CBoxResult::PreKeyNotFound,
-            CBoxError::DecryptError(DecryptError::PreKeyStoreError(_))   => CBoxResult::StorageError,
-            CBoxError::StorageError(_)                                   => CBoxResult::StorageError,
-            CBoxError::DecodeError(_)                                    => CBoxResult::DecodeError,
-            CBoxError::EncodeError(_)                                    => CBoxResult::EncodeError,
-            CBoxError::IdentityError                                     => CBoxResult::IdentityError,
-            CBoxError::InitError                                         => CBoxResult::InitError
+            CBoxError::ProteusError(session::Error::RemoteIdentityChanged) => CBoxResult::RemoteIdentityChanged,
+            CBoxError::ProteusError(session::Error::InvalidSignature)      => CBoxResult::InvalidSignature,
+            CBoxError::ProteusError(session::Error::InvalidMessage)        => CBoxResult::InvalidMessage,
+            CBoxError::ProteusError(session::Error::DuplicateMessage)      => CBoxResult::DuplicateMessage,
+            CBoxError::ProteusError(session::Error::TooDistantFuture)      => CBoxResult::TooDistantFuture,
+            CBoxError::ProteusError(session::Error::OutdatedMessage)       => CBoxResult::OutdatedMessage,
+            CBoxError::ProteusError(session::Error::PreKeyNotFound(_))     => CBoxResult::PreKeyNotFound,
+            CBoxError::ProteusError(session::Error::PreKeyStoreError(_))   => CBoxResult::StorageError,
+            CBoxError::ProteusError(session::Error::DegeneratedKey)        => CBoxResult::DegeneratedKey,
+            CBoxError::StorageError(_)                                     => CBoxResult::StorageError,
+            CBoxError::DecodeError(_)                                      => CBoxResult::DecodeError,
+            CBoxError::EncodeError(_)                                      => CBoxResult::EncodeError,
+            CBoxError::IdentityError                                       => CBoxResult::IdentityError,
+            CBoxError::InitError                                           => CBoxResult::InitError
         }
     }
 }
