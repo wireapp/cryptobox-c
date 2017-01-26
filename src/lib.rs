@@ -254,7 +254,7 @@ fn cbox_fingerprint_local(b: *const CBox<FileStore>, out: *mut *mut Vec<u8>) -> 
 
 #[no_mangle]
 pub extern
-fn cbox_fingerprint_remote(session: &CBoxSession<FileStore>, out: *mut *mut Vec<u8>) -> CBoxResult {
+fn cbox_fingerprint_remote(session: *const CBoxSession<FileStore>, out: *mut *mut Vec<u8>) -> CBoxResult {
     catch_unwind(|| {
         let fp = ptr2ref(session).fingerprint_remote().into_bytes();
         assign(out, Box::into_raw(Box::new(fp)));
