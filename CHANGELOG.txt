@@ -1,30 +1,39 @@
+1.0.0
+
+    * New error codes `CBOX_INIT_ERROR` and `CBOX_DEGENERATED_KEY`.
+    * Implementation improvements:
+        - C-strings are checked for trailing `\0` byte.
+        - C-strings are length restricted (4096 bytes for file paths,
+          1024 bytes for session IDs).
+        - Debug builds contain NULL pointer checks.
+
 0.8.3
------
-- Compatibility release for Android cross-compiling with 1.6 stable.
+
+    * Compatibility release for Android cross-compiling with 1.6 stable.
 
 0.8.2
------
-- Bugfix release.
+
+    * Bugfix release.
 
 0.8.1
------
-- Bugfix release.
+
+    * Bugfix release.
 
 0.8.0
------
-- Add `cbox_is_prekey`.
-- Update dependencies.
+
+    * Add `cbox_is_prekey`.
+    * Update dependencies.
 
 0.7.0
------
-- Update dependencies.
+
+    * Update dependencies.
 
 0.6.0
------
-- API changes:
-    - New error code `Panic`
-    - `cbox_fingerprint_local`, `cbox_fingerprint_remote` and
-      `cbox_random_bytes` now return a `CBoxResult`
-- Add `catch_panic` at FFI boundaries
-- Upgrade external dependencies (byteorder, libc)
-- Upgrade proteus (v0.4.1) and cryptobox (v0.6.0)
+
+    * API changes:
+        - New error code `Panic`
+        - `cbox_fingerprint_local`, `cbox_fingerprint_remote` and
+          `cbox_random_bytes` now return a `CBoxResult`
+    * Add `catch_panic` at FFI boundaries
+    * Upgrade external dependencies (byteorder, libc)
+    * Upgrade proteus (v0.4.1) and cryptobox (v0.6.0)

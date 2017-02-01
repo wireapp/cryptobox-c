@@ -13,8 +13,6 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#![feature(catch_panic)]
-
 extern crate cryptobox;
 extern crate libc;
 extern crate proteus;
@@ -25,14 +23,14 @@ use cryptobox::store::file::FileStore;
 use libc::{c_char, c_ushort, size_t, uint8_t, uint16_t};
 use proteus::{DecodeError, EncodeError};
 use proteus::keys::{self, PreKeyId, PreKeyBundle};
-use proteus::session::DecryptError;
+use proteus::session;
 use std::borrow::Cow;
 use std::ffi::CStr;
 use std::fmt;
-use std::ops::{Deref, DerefMut};
+use std::mem;
 use std::path::Path;
 use std::{slice, str, u16};
-use std::thread::catch_panic;
+use std::panic::{self, UnwindSafe};
 
 mod log;
 
@@ -55,12 +53,10 @@ pub enum CBoxIdentityMode {
 #[no_mangle]
 pub extern
 fn cbox_file_open(c_path: *const c_char, out: *mut *mut CBox<FileStore>) -> CBoxResult {
-    let c_path = AssertPanicSafe(c_path);
-    let out    = AssertPanicSafe(out);
-    recover(move || {
-        let path = try_unwrap!(to_str(*c_path));
+    catch_unwind(|| {
+        let path = try_unwrap!(to_str(c_path, 4096));
         let cbox = try_unwrap!(CBox::file_open(&Path::new(path)));
-        assign(*out, Box::into_raw(Box::new(cbox)));
+        assign(out, Box::into_raw(Box::new(cbox)));
         CBoxResult::Success
     })
 }
@@ -73,12 +69,9 @@ fn cbox_file_open_with(c_path:   *const c_char,
                        c_mode:   CBoxIdentityMode,
                        out:      *mut *mut CBox<FileStore>) -> CBoxResult
 {
-    let c_path = AssertPanicSafe(c_path);
-    let c_id   = AssertPanicSafe(c_id);
-    let out    = AssertPanicSafe(out);
-    recover(move || {
-        let path     = try_unwrap!(to_str(*c_path));
-        let id_slice = to_slice(*c_id, c_id_len as usize);
+    catch_unwind(|| {
+        let path     = try_unwrap!(to_str(c_path, 4096));
+        let id_slice = to_slice(c_id, c_id_len);
         let ident    = match try_unwrap!(Identity::deserialise(id_slice)) {
             Identity::Sec(i) => i.into_owned(),
             Identity::Pub(_) => return CBoxResult::IdentityError
@@ -88,56 +81,53 @@ fn cbox_file_open_with(c_path:   *const c_char,
             CBoxIdentityMode::Public   => IdentityMode::Public
         };
         let cbox = try_unwrap!(CBox::file_open_with(&Path::new(path), ident, mode));
-        assign(*out, Box::into_raw(Box::new(cbox)));
+        assign(out, Box::into_raw(Box::new(cbox)));
         CBoxResult::Success
     })
 }
 
 #[no_mangle]
 pub extern fn cbox_close(b: *mut CBox<FileStore>) {
-    let b = AssertPanicSafe(b);
-    recover(move || {
-        unsafe { Box::from_raw(*b); }
+    debug_assert!(!b.is_null());
+    catch_unwind(|| {
+        unsafe { Box::from_raw(b); }
         CBoxResult::Success
     });
 }
 
 #[no_mangle]
 pub extern
-fn cbox_identity_copy(cbox: &'static CBox<FileStore>, out: *mut *mut Vec<u8>) -> CBoxResult {
-    let out = AssertPanicSafe(out);
-    recover(move || {
-        let i = try_unwrap!(Identity::Sec(Cow::Borrowed(cbox.identity())).serialise());
-        assign(*out, Box::into_raw(Box::new(i)));
+fn cbox_identity_copy(cbox: *const CBox<FileStore>, out: *mut *mut Vec<u8>) -> CBoxResult {
+    catch_unwind(|| {
+        let i = try_unwrap!(Identity::Sec(Cow::Borrowed(ptr2ref(cbox).identity())).serialise());
+        assign(out, Box::into_raw(Box::new(i)));
         CBoxResult::Success
     })
 }
 
 #[no_mangle]
 pub extern
-fn cbox_session_save(cbox: &'static CBox<FileStore>, s: &'static mut CBoxSession<'static, FileStore>) -> CBoxResult {
-    recover(move || {
-        try_unwrap!(cbox.session_save(s));
+fn cbox_session_save(b: *const CBox<FileStore>, s: *mut CBoxSession<FileStore>) -> CBoxResult {
+    catch_unwind(move || {
+        try_unwrap!(ptr2ref(b).session_save(ptr2mut(s)));
         CBoxResult::Success
     })
 }
 
 #[no_mangle]
 pub extern
-fn cbox_session_delete(cbox: &'static CBox<FileStore>, c_sid: *const c_char) -> CBoxResult {
-    let c_sid = AssertPanicSafe(c_sid);
-    recover(move || {
-        let sid = try_unwrap!(to_str(*c_sid));
-        try_unwrap!(cbox.session_delete(sid));
+fn cbox_session_delete(cbox: *const CBox<FileStore>, c_sid: *const c_char) -> CBoxResult {
+    catch_unwind(|| {
+        let sid = try_unwrap!(to_str(c_sid, 1024));
+        try_unwrap!(ptr2ref(cbox).session_delete(sid));
         CBoxResult::Success
     })
 }
 
 #[no_mangle]
-pub extern fn cbox_random_bytes(_: &CBox<FileStore>, n: size_t, out: *mut *mut Vec<u8>) -> CBoxResult {
-    let out = AssertPanicSafe(out);
-    recover(move || {
-        assign(*out, Box::into_raw(Box::new(keys::rand_bytes(n as usize))));
+pub extern fn cbox_random_bytes(_: *const CBox<FileStore>, n: size_t, out: *mut *mut Vec<u8>) -> CBoxResult {
+    catch_unwind(|| {
+        assign(out, Box::into_raw(Box::new(keys::rand_bytes(n as usize))));
         CBoxResult::Success
     })
 }
@@ -149,12 +139,11 @@ pub static CBOX_LAST_PREKEY_ID: c_ushort = u16::MAX;
 
 #[no_mangle]
 pub extern
-fn cbox_new_prekey(cbox: &'static CBox<FileStore>, pkid: uint16_t, out: *mut *mut Vec<u8>) -> CBoxResult {
-    let out  = AssertPanicSafe(out);
-    recover(move || {
-        let bundle = try_unwrap!(cbox.new_prekey(PreKeyId::new(pkid)));
+fn cbox_new_prekey(cbox: *const CBox<FileStore>, pkid: uint16_t, out: *mut *mut Vec<u8>) -> CBoxResult {
+    catch_unwind(|| {
+        let bundle = try_unwrap!(ptr2ref(cbox).new_prekey(PreKeyId::new(pkid)));
         let bytes  = try_unwrap!(bundle.serialise());
-        assign(*out, Box::into_raw(Box::new(bytes)));
+        assign(out, Box::into_raw(Box::new(bytes)));
         CBoxResult::Success
     })
 }
@@ -163,127 +152,112 @@ fn cbox_new_prekey(cbox: &'static CBox<FileStore>, pkid: uint16_t, out: *mut *mu
 
 #[no_mangle]
 pub extern fn cbox_session_init_from_prekey
-    (cbox:         &'static CBox<FileStore>,
+    (cbox:         *const CBox<FileStore>,
      c_sid:        *const c_char,
      c_prekey:     *const uint8_t,
      c_prekey_len: size_t,
-     out:          *mut *mut CBoxSession<'static, FileStore>) -> CBoxResult
+     out:          *mut *mut CBoxSession<FileStore>) -> CBoxResult
 {
-    let c_sid    = AssertPanicSafe(c_sid);
-    let c_prekey = AssertPanicSafe(c_prekey);
-    let out      = AssertPanicSafe(out);
-    recover(move || {
-        let sid     = try_unwrap!(to_str(*c_sid));
-        let prekey  = to_slice(*c_prekey, c_prekey_len as usize);
-        let session = try_unwrap!(cbox.session_from_prekey(String::from(sid), prekey));
-        assign(*out, Box::into_raw(Box::new(session)));
+    catch_unwind(|| {
+        let sid     = try_unwrap!(to_str(c_sid, 1024));
+        let prekey  = to_slice(c_prekey, c_prekey_len);
+        let session = try_unwrap!(ptr2ref(cbox).session_from_prekey(String::from(sid), prekey));
+        assign(out, Box::into_raw(Box::new(session)));
         CBoxResult::Success
     })
 }
 
 #[no_mangle]
 pub extern fn cbox_session_init_from_message
-    (cbox:         &'static CBox<FileStore>,
+    (cbox:         *const CBox<FileStore>,
      c_sid:        *const c_char,
      c_cipher:     *const uint8_t,
      c_cipher_len: size_t,
-     c_sess:       *mut *mut CBoxSession<'static, FileStore>,
+     c_sess:       *mut *mut CBoxSession<FileStore>,
      c_plain:      *mut *mut Vec<u8>) -> CBoxResult
 {
-    let c_sid    = AssertPanicSafe(c_sid);
-    let c_cipher = AssertPanicSafe(c_cipher);
-    let c_sess   = AssertPanicSafe(c_sess);
-    let c_plain  = AssertPanicSafe(c_plain);
-    recover(move || {
-        let sid    = try_unwrap!(to_str(*c_sid));
-        let env    = to_slice(*c_cipher, c_cipher_len as usize);
-        let (s, v) = try_unwrap!(cbox.session_from_message(String::from(sid), env));
-        assign(*c_plain, Box::into_raw(Box::new(v)));
-        assign(*c_sess, Box::into_raw(Box::new(s)));
+    catch_unwind(|| {
+        let sid    = try_unwrap!(to_str(c_sid, 1024));
+        let env    = to_slice(c_cipher, c_cipher_len);
+        let (s, v) = try_unwrap!(ptr2ref(cbox).session_from_message(String::from(sid), env));
+        assign(c_plain, Box::into_raw(Box::new(v)));
+        assign(c_sess, Box::into_raw(Box::new(s)));
         CBoxResult::Success
     })
 }
 
 #[no_mangle]
 pub extern fn cbox_session_load
-    (cbox:  &'static CBox<FileStore>,
+    (cbox:  *const CBox<FileStore>,
      c_sid: *const c_char,
-     out:   *mut *mut CBoxSession<'static, FileStore>) -> CBoxResult
+     out:   *mut *mut CBoxSession<FileStore>) -> CBoxResult
 {
-    let c_sid = AssertPanicSafe(c_sid);
-    let out   = AssertPanicSafe(out);
-    recover(move || {
-        let sid     = try_unwrap!(to_str(*c_sid));
-        let session = match try_unwrap!(cbox.session_load(String::from(sid))) {
+    catch_unwind(|| {
+        let sid     = try_unwrap!(to_str(c_sid, 1024));
+        let session = match try_unwrap!(ptr2ref(cbox).session_load(String::from(sid))) {
             None    => return CBoxResult::SessionNotFound,
             Some(s) => s
         };
-        assign(*out, Box::into_raw(Box::new(session)));
+        assign(out, Box::into_raw(Box::new(session)));
         CBoxResult::Success
     })
 }
 
 #[no_mangle]
-pub extern fn cbox_session_close(b: *mut CBoxSession<'static, FileStore>) {
-    let b = AssertPanicSafe(b);
-    recover(move || {
-        unsafe { Box::from_raw(*b); }
+pub extern fn cbox_session_close(b: *mut CBoxSession<FileStore>) {
+    debug_assert!(!b.is_null());
+    catch_unwind(|| {
+        unsafe { Box::from_raw(b); }
         CBoxResult::Success
     });
 }
 
 #[no_mangle]
 pub extern fn cbox_encrypt
-    (session:     &'static mut CBoxSession<'static, FileStore>,
+    (session:     *mut CBoxSession<FileStore>,
      c_plain:     *const uint8_t,
      c_plain_len: size_t,
      out:         *mut *mut Vec<u8>) -> CBoxResult
 {
-    let c_plain = AssertPanicSafe(c_plain);
-    let out     = AssertPanicSafe(out);
-    recover(move || {
-        let plain  = to_slice(*c_plain, c_plain_len as usize);
-        let cipher = try_unwrap!(session.encrypt(plain));
-        assign(*out, Box::into_raw(Box::new(cipher)));
+    catch_unwind(move || {
+        let plain  = to_slice(c_plain, c_plain_len);
+        let cipher = try_unwrap!(ptr2mut(session).encrypt(plain));
+        assign(out, Box::into_raw(Box::new(cipher)));
         CBoxResult::Success
     })
 }
 
 #[no_mangle]
 pub extern fn cbox_decrypt
-    (session:      &'static mut CBoxSession<'static, FileStore>,
+    (session:      *mut CBoxSession<FileStore>,
      c_cipher:     *const uint8_t,
      c_cipher_len: size_t,
      out:          *mut *mut Vec<u8>) -> CBoxResult
 {
-    let c_cipher = AssertPanicSafe(c_cipher);
-    let out      = AssertPanicSafe(out);
-    recover(move || {
-        let env   = to_slice(*c_cipher, c_cipher_len as usize);
-        let plain = try_unwrap!(session.decrypt(env));
-        assign(*out, Box::into_raw(Box::new(plain)));
+    catch_unwind(move || {
+        let env   = to_slice(c_cipher, c_cipher_len);
+        let plain = try_unwrap!(ptr2mut(session).decrypt(env));
+        assign(out, Box::into_raw(Box::new(plain)));
         CBoxResult::Success
     })
 }
 
 #[no_mangle]
 pub extern
-fn cbox_fingerprint_local(b: &'static CBox<FileStore>, out: *mut *mut Vec<u8>) -> CBoxResult {
-    let out = AssertPanicSafe(out);
-    recover(move || {
-        let fp = b.fingerprint().into_bytes();
-        assign(*out, Box::into_raw(Box::new(fp)));
+fn cbox_fingerprint_local(b: *const CBox<FileStore>, out: *mut *mut Vec<u8>) -> CBoxResult {
+    catch_unwind(|| {
+        let fp = ptr2ref(b).fingerprint().into_bytes();
+        assign(out, Box::into_raw(Box::new(fp)));
         CBoxResult::Success
     })
 }
 
 #[no_mangle]
 pub extern
-fn cbox_fingerprint_remote(session: &'static CBoxSession<'static, FileStore>, out: *mut *mut Vec<u8>) -> CBoxResult {
-    let out = AssertPanicSafe(out);
-    recover(move || {
-        let fp = session.fingerprint_remote().into_bytes();
-        assign(*out, Box::into_raw(Box::new(fp)));
+fn cbox_fingerprint_remote(session: *const CBoxSession<FileStore>, out: *mut *mut Vec<u8>) -> CBoxResult {
+    catch_unwind(|| {
+        let fp = ptr2ref(session).fingerprint_remote().into_bytes();
+        assign(out, Box::into_raw(Box::new(fp)));
         CBoxResult::Success
     })
 }
@@ -291,12 +265,10 @@ fn cbox_fingerprint_remote(session: &'static CBoxSession<'static, FileStore>, ou
 #[no_mangle]
 pub extern
 fn cbox_is_prekey(c_prekey: *const uint8_t, c_prekey_len: size_t, id: *mut uint16_t) -> CBoxResult {
-    let c_prekey = AssertPanicSafe(c_prekey);
-    let id       = AssertPanicSafe(id);
-    recover(move || {
-        let prekey = to_slice(*c_prekey, c_prekey_len as usize);
+    catch_unwind(|| {
+        let prekey = to_slice(c_prekey, c_prekey_len);
         let prekey = try_unwrap!(PreKeyBundle::deserialise(prekey));
-        assign(*id, prekey.prekey_id.value());
+        assign(id, prekey.prekey_id.value());
         CBoxResult::Success
     })
 }
@@ -305,31 +277,60 @@ fn cbox_is_prekey(c_prekey: *const uint8_t, c_prekey_len: size_t, id: *mut uint1
 
 #[no_mangle]
 pub extern fn cbox_vec_free(b: *mut Vec<u8>) {
+    debug_assert!(!b.is_null());
     unsafe { Box::from_raw(b); }
 }
 
 #[no_mangle]
-pub extern fn cbox_vec_data(v: &Vec<u8>) -> *const uint8_t {
-    v.as_ptr()
+pub extern fn cbox_vec_data(v: *const Vec<u8>) -> *const uint8_t {
+    ptr2ref(v).as_ptr()
 }
 
 #[no_mangle]
-pub extern fn cbox_vec_len(v: &Vec<u8>) -> size_t {
-    v.len() as size_t
+pub extern fn cbox_vec_len(v: *const Vec<u8>) -> size_t {
+    ptr2ref(v).len() as size_t
 }
 
 // Unsafe ///////////////////////////////////////////////////////////////////
 
-fn to_str<'r>(s: *const c_char) -> Result<&'r str, str::Utf8Error> {
-    unsafe { CStr::from_ptr(s).to_str() }
+fn to_str<'r>(s: *const c_char, n: size_t) -> Result<&'r str, CBoxResult> {
+    debug_assert!(!s.is_null());
+    let slen =
+        match unsafe { libc::strnlen(s, n) } {
+            k if k == n => return Err(CBoxResult::NulError),
+            k           => k + 1 // count \0-byte
+        };
+    let cstr = unsafe {
+        let bytes = slice::from_raw_parts(s, slen);
+        CStr::from_bytes_with_nul_unchecked(mem::transmute(bytes))
+    };
+    cstr.to_str().map_err(From::from)
 }
 
-fn to_slice<'r, A>(xs: *const A, len: usize) -> &'r [A] {
-    unsafe { slice::from_raw_parts(xs, len) }
+#[inline]
+fn to_slice<'r, A>(xs: *const A, len: size_t) -> &'r [A] {
+    debug_assert!(!xs.is_null());
+    unsafe {
+        slice::from_raw_parts(xs, len as usize)
+    }
 }
 
+#[inline]
 fn assign<A>(to: *mut A, from: A) {
+    debug_assert!(!to.is_null());
     unsafe { *to = from }
+}
+
+#[inline]
+fn ptr2ref<'a, A>(p: *const A) -> &'a A {
+    debug_assert!(!p.is_null());
+    unsafe { &*p }
+}
+
+#[inline]
+fn ptr2mut<'a, A>(p: *mut A) -> &'a mut A {
+    debug_assert!(!p.is_null());
+    unsafe { &mut *p }
 }
 
 // CBoxResult ///////////////////////////////////////////////////////////////
@@ -353,25 +354,29 @@ pub enum CBoxResult {
     EncodeError           = 12,
     IdentityError         = 13,
     PreKeyNotFound        = 14,
-    Panic                 = 15
+    Panic                 = 15,
+    InitError             = 16,
+    DegeneratedKey        = 17
 }
 
 impl<S: Store + fmt::Debug> From<CBoxError<S>> for CBoxResult {
     fn from(e: CBoxError<S>) -> CBoxResult {
         let _ = log::error(&e);
         match e {
-            CBoxError::DecryptError(DecryptError::RemoteIdentityChanged) => CBoxResult::RemoteIdentityChanged,
-            CBoxError::DecryptError(DecryptError::InvalidSignature)      => CBoxResult::InvalidSignature,
-            CBoxError::DecryptError(DecryptError::InvalidMessage)        => CBoxResult::InvalidMessage,
-            CBoxError::DecryptError(DecryptError::DuplicateMessage)      => CBoxResult::DuplicateMessage,
-            CBoxError::DecryptError(DecryptError::TooDistantFuture)      => CBoxResult::TooDistantFuture,
-            CBoxError::DecryptError(DecryptError::OutdatedMessage)       => CBoxResult::OutdatedMessage,
-            CBoxError::DecryptError(DecryptError::PreKeyNotFound(_))     => CBoxResult::PreKeyNotFound,
-            CBoxError::DecryptError(DecryptError::PreKeyStoreError(_))   => CBoxResult::StorageError,
-            CBoxError::StorageError(_)                                   => CBoxResult::StorageError,
-            CBoxError::DecodeError(_)                                    => CBoxResult::DecodeError,
-            CBoxError::EncodeError(_)                                    => CBoxResult::EncodeError,
-            CBoxError::IdentityError                                     => CBoxResult::IdentityError
+            CBoxError::ProteusError(session::Error::RemoteIdentityChanged) => CBoxResult::RemoteIdentityChanged,
+            CBoxError::ProteusError(session::Error::InvalidSignature)      => CBoxResult::InvalidSignature,
+            CBoxError::ProteusError(session::Error::InvalidMessage)        => CBoxResult::InvalidMessage,
+            CBoxError::ProteusError(session::Error::DuplicateMessage)      => CBoxResult::DuplicateMessage,
+            CBoxError::ProteusError(session::Error::TooDistantFuture)      => CBoxResult::TooDistantFuture,
+            CBoxError::ProteusError(session::Error::OutdatedMessage)       => CBoxResult::OutdatedMessage,
+            CBoxError::ProteusError(session::Error::PreKeyNotFound(_))     => CBoxResult::PreKeyNotFound,
+            CBoxError::ProteusError(session::Error::PreKeyStoreError(_))   => CBoxResult::StorageError,
+            CBoxError::ProteusError(session::Error::DegeneratedKey)        => CBoxResult::DegeneratedKey,
+            CBoxError::StorageError(_)                                     => CBoxResult::StorageError,
+            CBoxError::DecodeError(_)                                      => CBoxResult::DecodeError,
+            CBoxError::EncodeError(_)                                      => CBoxResult::EncodeError,
+            CBoxError::IdentityError                                       => CBoxResult::IdentityError,
+            CBoxError::InitError                                           => CBoxResult::InitError
         }
     }
 }
@@ -397,29 +402,9 @@ impl From<EncodeError> for CBoxResult {
     }
 }
 
-// catch_panic helpers //////////////////////////////////////////////////////
-
-fn recover<F>(f: F) -> CBoxResult where F: FnOnce() -> CBoxResult + Send + 'static {
-    match catch_panic(f) {
+fn catch_unwind<F>(f: F) -> CBoxResult where F: FnOnce() -> CBoxResult + UnwindSafe {
+    match panic::catch_unwind(f) {
         Ok(x)  => x,
         Err(_) => CBoxResult::Panic
-    }
-}
-
-struct AssertPanicSafe<T>(pub T);
-
-unsafe impl<T> Send for AssertPanicSafe<T> {}
-
-impl<T> Deref for AssertPanicSafe<T> {
-    type Target = T;
-
-    fn deref(&self) -> &T {
-        &self.0
-    }
-}
-
-impl<T> DerefMut for AssertPanicSafe<T> {
-    fn deref_mut(&mut self) -> &mut T {
-        &mut self.0
     }
 }
