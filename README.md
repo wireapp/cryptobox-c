@@ -31,7 +31,7 @@ For licensing information, see the attached LICENSE file and the list of third-p
 
 ### Package
 
-The current build can produce a basic Debian package. [Makedeb](https://github.com/twittner/makedeb) must be installed, then
+The current build can produce a basic Debian package. [Makedeb](https://github.com/wireapp/wire-server/tree/develop/tools/makedeb) must be installed, then
 
     make dist
 
