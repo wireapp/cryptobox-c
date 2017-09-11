@@ -9,7 +9,7 @@ license      = "GPL-3.0"
 
 [lib]
 name         = "cryptobox"
-crate-type   = ["cdylib"]
+crate-type   = ["staticlib", "cdylib"]
 
 [dependencies]
 cryptobox = { git = "https://github.com/wireapp/cryptobox", branch = "develop" }
