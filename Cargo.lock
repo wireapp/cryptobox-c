@@ -1,55 +1,55 @@
-[root]
-name = "cryptobox-c"
-version = "1.0.0"
-dependencies = [
- "cryptobox 1.0.0 (git+https://github.com/wireapp/cryptobox?tag=v1.0.0)",
- "libc 0.2.20 (registry+https://github.com/rust-lang/crates.io-index)",
- "proteus 1.0.0 (git+https://github.com/wireapp/proteus?tag=v1.0.0)",
-]
-
 [[package]]
 name = "byteorder"
-version = "1.0.0"
+version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "cbor-codec"
-version = "0.7.0"
+version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "byteorder 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "libc 0.2.20 (registry+https://github.com/rust-lang/crates.io-index)",
+ "byteorder 1.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc 0.2.35 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "cryptobox"
 version = "1.0.0"
-source = "git+https://github.com/wireapp/cryptobox?tag=v1.0.0#27a74ab2b3dd284a31dbc2c3eb253cd660dc309c"
+source = "git+https://github.com/wireapp/cryptobox?branch=develop#ec45a50c3608d00744625125125932beac890965"
 dependencies = [
- "byteorder 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "cbor-codec 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "proteus 1.0.0 (git+https://github.com/wireapp/proteus?tag=v1.0.0)",
+ "byteorder 1.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cbor-codec 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "proteus 1.0.0 (git+https://github.com/wireapp/proteus?branch=develop)",
+]
+
+[[package]]
+name = "cryptobox-c"
+version = "1.0.0"
+dependencies = [
+ "cryptobox 1.0.0 (git+https://github.com/wireapp/cryptobox?branch=develop)",
+ "libc 0.2.35 (registry+https://github.com/rust-lang/crates.io-index)",
+ "proteus 1.0.0 (git+https://github.com/wireapp/proteus?branch=develop)",
 ]
 
 [[package]]
 name = "hkdf"
 version = "0.2.0"
-source = "git+https://github.com/wireapp/hkdf?tag=v0.2.0#7aac6e99153b266345e81484d54810caec8fae13"
+source = "git+https://github.com/wireapp/hkdf?branch=develop#215025dc0efec119a7368447ed97bb908eddfb1c"
 dependencies = [
- "sodiumoxide 0.0.14 (registry+https://github.com/rust-lang/crates.io-index)",
+ "sodiumoxide 0.0.16 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "libc"
-version = "0.2.20"
+version = "0.2.35"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "libsodium-sys"
-version = "0.0.14"
+version = "0.0.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "libc 0.2.20 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc 0.2.35 (registry+https://github.com/rust-lang/crates.io-index)",
  "pkg-config 0.3.9 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -61,31 +61,31 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "proteus"
 version = "1.0.0"
-source = "git+https://github.com/wireapp/proteus?tag=v1.0.0#5bb9f3da4c6a1324b4636b6e92c4c3d3d479cc22"
+source = "git+https://github.com/wireapp/proteus?branch=develop#bbecc0c649d020bb208ad83d120c6971913e2eeb"
 dependencies = [
- "byteorder 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "cbor-codec 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "hkdf 0.2.0 (git+https://github.com/wireapp/hkdf?tag=v0.2.0)",
- "libc 0.2.20 (registry+https://github.com/rust-lang/crates.io-index)",
- "sodiumoxide 0.0.14 (registry+https://github.com/rust-lang/crates.io-index)",
+ "byteorder 1.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cbor-codec 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "hkdf 0.2.0 (git+https://github.com/wireapp/hkdf?branch=develop)",
+ "libc 0.2.35 (registry+https://github.com/rust-lang/crates.io-index)",
+ "sodiumoxide 0.0.16 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "sodiumoxide"
-version = "0.0.14"
+version = "0.0.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "libc 0.2.20 (registry+https://github.com/rust-lang/crates.io-index)",
- "libsodium-sys 0.0.14 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc 0.2.35 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libsodium-sys 0.0.16 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [metadata]
-"checksum byteorder 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)" = "c40977b0ee6b9885c9013cd41d9feffdd22deb3bb4dc3a71d901cc7a77de18c8"
-"checksum cbor-codec 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)" = "a959472d2119b3fd4d3672483cd7c9b9bb244c71f34aec3bf7376f798ed2a26b"
-"checksum cryptobox 1.0.0 (git+https://github.com/wireapp/cryptobox?tag=v1.0.0)" = "<none>"
-"checksum hkdf 0.2.0 (git+https://github.com/wireapp/hkdf?tag=v0.2.0)" = "<none>"
-"checksum libc 0.2.20 (registry+https://github.com/rust-lang/crates.io-index)" = "684f330624d8c3784fb9558ca46c4ce488073a8d22450415c5eb4f4cfb0d11b5"
-"checksum libsodium-sys 0.0.14 (registry+https://github.com/rust-lang/crates.io-index)" = "cbbc6e46017815abf8698de0ed4847fad45fd8cad2909ac38ac6de79673c1ad1"
+"checksum byteorder 1.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "652805b7e73fada9d85e9a6682a4abd490cb52d96aeecc12e33a0de34dfd0d23"
+"checksum cbor-codec 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)" = "e083a023562b37c52837e850131a51b1154cceb9d149f41ee3d386737b140f46"
+"checksum cryptobox 1.0.0 (git+https://github.com/wireapp/cryptobox?branch=develop)" = "<none>"
+"checksum hkdf 0.2.0 (git+https://github.com/wireapp/hkdf?branch=develop)" = "<none>"
+"checksum libc 0.2.35 (registry+https://github.com/rust-lang/crates.io-index)" = "96264e9b293e95d25bfcbbf8a88ffd1aedc85b754eba8b7d78012f638ba220eb"
+"checksum libsodium-sys 0.0.16 (registry+https://github.com/rust-lang/crates.io-index)" = "fcbd1beeed8d44caa8a669ebaa697c313976e242c03cc9fb23d88bf1656f5542"
 "checksum pkg-config 0.3.9 (registry+https://github.com/rust-lang/crates.io-index)" = "3a8b4c6b8165cd1a1cd4b9b120978131389f64bdaf456435caa41e630edba903"
-"checksum proteus 1.0.0 (git+https://github.com/wireapp/proteus?tag=v1.0.0)" = "<none>"
-"checksum sodiumoxide 0.0.14 (registry+https://github.com/rust-lang/crates.io-index)" = "bc02c0bc77ffed8e8eaef004399b825cf4fd8aa02d0af6e473225affd583ff4d"
+"checksum proteus 1.0.0 (git+https://github.com/wireapp/proteus?branch=develop)" = "<none>"
+"checksum sodiumoxide 0.0.16 (registry+https://github.com/rust-lang/crates.io-index)" = "eb5cb2f14f9a51352ad65e59257a0a9459d5a36a3615f3d53a974c82fdaaa00a"
