@@ -4,6 +4,9 @@ ARCH    := amd64
 BUILD   ?= 1
 OS		:= $(shell uname -s | tr '[:upper:]' '[:lower:]')
 
+TARGET_LIB ?= /usr/local/lib
+TARGET_INCLUDE ?= /usr/local/include
+
 ifeq ($(OS), darwin)
 LIB_TYPE := dylib
 LIB_PATH := DYLD_LIBRARY_PATH
@@ -45,12 +48,12 @@ bench-compile: compile-release
 	$(CC) -std=c99 -Wall -Wextra -Werror -g test/bench.c -o test/target/bench -Isrc -Ltest/target -lcryptobox
 
 install: compile-release
-	cp src/cbox.h /usr/local/include
-	cp target/release/libcryptobox.$(LIB_TYPE) /usr/local/lib
+	cp src/cbox.h $(TARGET_INCLUDE)
+	cp target/release/libcryptobox.$(LIB_TYPE) $(TARGET_LIB)
 
 uninstall:
-	rm -f /usr/local/include/cbox.h
-	rm -f /usr/local/lib/libcryptobox.$(LIB_TYPE)
+	rm -f $(TARGET_INCLUDE)/cbox.h
+	rm -f $(TARGET_LIB)/libcryptobox.$(LIB_TYPE)
 
 dist: compile-release
 	mkdir -p deb/usr/include
