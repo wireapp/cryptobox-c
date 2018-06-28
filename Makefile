@@ -1,8 +1,8 @@
-SHELL   := /usr/bin/env bash
-VERSION := "0.8.3"
-ARCH    := amd64
-BUILD   ?= 1
-OS		:= $(shell uname -s | tr '[:upper:]' '[:lower:]')
+SHELL        := /usr/bin/env bash
+VERSION      := "0.8.3"
+ARCH         := amd64
+BUILD_NUMBER ?= 1
+OS           := $(shell uname -s | tr '[:upper:]' '[:lower:]')
 
 TARGET_LIB ?= /usr/local/lib
 TARGET_INCLUDE ?= /usr/local/include
@@ -62,9 +62,9 @@ dist: compile-release
 	cp target/release/libcryptobox.$(LIB_TYPE) deb/usr/lib
 ifeq ($(OS), linux)
 	makedeb --name=cryptobox       \
-			--version=$(VERSION)   \
-			--debian-dir=deb       \
-			--build=$(BUILD)       \
-			--architecture=$(ARCH) \
+			--version=$(VERSION)    \
+			--debian-dir=deb        \
+			--build=$(BUILD_NUMBER) \
+			--architecture=$(ARCH)  \
 			--output-dir=target/release
 endif
