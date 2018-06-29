@@ -123,12 +123,31 @@ typedef enum {
     CBOX_IDENTITY_PUBLIC   = 1
 } CBoxIdentityMode;
 
+
+
+
+// DB /////////////////////////////////////////////////////////////////////
+typedef struct ConnPool ConnPool;
+
+
+
+CBoxResult cbox_db_conn_pool(char const * p, uint16_t s, ConnPool ** cp);
+
+
+
+typedef struct Armconn Armconn;
+
+CBoxResult cbox_db_conn(ConnPool const * p, Armconn ** c);
+
+
 // CBox /////////////////////////////////////////////////////////////////////
 
 // A container of sessions and prekeys of a single peer with a long-lived
 // identity which is either internally or externally managed.
-typedef struct CBox CBox;
 
+
+
+typedef struct CBox CBox;
 // Open a CBox in an existing directory with an internally managed identity.
 //
 // The given directory is the root directory for the CBox in which
@@ -138,7 +157,7 @@ typedef struct CBox CBox;
 // ---
 // `path` is the path to an existing directory.
 // `b` is the pointer to point at the opened CBox.
-CBoxResult cbox_file_open(char const * path, CBox ** b);
+CBoxResult cbox_db_open(char const * path,  Armconn const *  c, CBox ** b);
 
 // Open a CBox using an existing external identity.
 //
@@ -153,7 +172,8 @@ CBoxResult cbox_file_open(char const * path, CBox ** b);
 //         identity.
 // `ident_len` is the length of `ident`.
 // `mode` specifies the desired storage of the given identity inside the box.
-CBoxResult cbox_file_open_with(char const * path,
+CBoxResult cbox_db_open_with(char const * path,
+                               Armconn const *  c,
                                uint8_t const * ident,
                                size_t ident_len,
                                CBoxIdentityMode mode,

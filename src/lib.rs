@@ -16,23 +16,42 @@
 extern crate cryptobox;
 extern crate libc;
 extern crate proteus;
+extern crate postgres;
+extern crate uuid;
+extern crate r2d2;
+extern crate r2d2_postgres;
 
-use cryptobox::{CBox, CBoxError, CBoxSession, Identity, IdentityMode};
+
+
+use r2d2::Error as PoolError;
+use r2d2_postgres::{TlsMode, PostgresConnectionManager};
+use cryptobox::{CBox, CBoxError, CBoxSession, Identity, IdentityMode, Armconn, ConnPool};
 use cryptobox::store::Store;
 use cryptobox::store::file::FileStore;
 use libc::{c_char, c_ushort, size_t, uint8_t, uint16_t};
 use proteus::{DecodeError, EncodeError};
 use proteus::keys::{self, PreKeyId, PreKeyBundle};
-use proteus::session;
+//use proteus::message::Envelope;
+//use proteus::session::{PreKeyStore, Session};
 use std::borrow::Cow;
 use std::ffi::CStr;
 use std::fmt;
 use std::mem;
-use std::path::Path;
 use std::{slice, str, u16};
-use std::panic::{self, UnwindSafe};
+use std::sync::*;
+use std::panic::{self, UnwindSafe, AssertUnwindSafe};
+use postgres::error as PgError;
+use proteus::session::Error as seError;
+use uuid::Uuid;
+use uuid::ParseError;
 
 mod log;
+
+type Armconnpool =  Arc<Mutex<ConnPool>>;
+
+
+
+
 
 /// Variant of std::try! that returns the unwrapped error.
 macro_rules! try_unwrap {
@@ -42,6 +61,9 @@ macro_rules! try_unwrap {
     })
 }
 
+
+
+
 #[repr(C)]
 #[no_mangle]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -50,12 +72,46 @@ pub enum CBoxIdentityMode {
     Public   = 1
 }
 
+
 #[no_mangle]
 pub extern
-fn cbox_file_open(c_path: *const c_char, out: *mut *mut CBox<FileStore>) -> CBoxResult {
+fn cbox_db_conn_pool(c_sqlurl: *const c_char,
+                     c_size:  uint16_t,
+                out: *mut *mut Armconnpool) -> CBoxResult {
     catch_unwind(|| {
-        let path = try_unwrap!(to_str(c_path, 4096));
-        let cbox = try_unwrap!(CBox::file_open(&Path::new(path)));
+        let sqlurl = try_unwrap!(to_str(c_sqlurl, 4096));
+        let manager = PostgresConnectionManager::new(sqlurl, TlsMode::None).unwrap();
+        let pool = r2d2::Pool::builder().max_size(c_size.into()).build(manager).unwrap();
+
+        assign(out, Box::into_raw(Box::new( Arc::new(Mutex::new(pool))) ));
+        CBoxResult::Success
+    })
+}
+
+
+#[no_mangle]
+pub extern
+fn cbox_db_conn(c_pool: *const Armconnpool,
+                out: *mut *mut Armconn) -> CBoxResult {
+    catch_unwind(|| {
+        let pool =ptr2ref(c_pool).clone();
+        let conn = try_unwrap!(pool.lock().unwrap().get());
+        assign(out, Box::into_raw(Box::new( Arc::new(Mutex::new(conn)))));
+        CBoxResult::Success
+    })
+}
+
+
+
+#[no_mangle]
+pub extern
+fn cbox_db_open(id_c: *const c_char,
+                  dbcon: *const Armconn,
+                  out: *mut *mut CBox<FileStore>) -> CBoxResult {
+    catch_unwind(|| {
+        let id = try_unwrap!(to_str(id_c, 4096));
+        let idu = try_unwrap!(Uuid::parse_str(id));
+        let cbox = try_unwrap!(CBox::db_open(idu, ptr2ref(dbcon).clone()));
         assign(out, Box::into_raw(Box::new(cbox)));
         CBoxResult::Success
     })
@@ -63,14 +119,16 @@ fn cbox_file_open(c_path: *const c_char, out: *mut *mut CBox<FileStore>) -> CBox
 
 #[no_mangle]
 pub extern
-fn cbox_file_open_with(c_path:   *const c_char,
+fn cbox_db_open_with(id_c: *const c_char,
+                       dbcon: *const Armconn,
                        c_id:     *const uint8_t,
                        c_id_len: size_t,
                        c_mode:   CBoxIdentityMode,
                        out:      *mut *mut CBox<FileStore>) -> CBoxResult
 {
     catch_unwind(|| {
-        let path     = try_unwrap!(to_str(c_path, 4096));
+        let idstr = try_unwrap!(to_str(id_c, 4096));
+        let idu = try_unwrap!(Uuid::parse_str(idstr));
         let id_slice = to_slice(c_id, c_id_len);
         let ident    = match try_unwrap!(Identity::deserialise(id_slice)) {
             Identity::Sec(i) => i.into_owned(),
@@ -80,7 +138,7 @@ fn cbox_file_open_with(c_path:   *const c_char,
             CBoxIdentityMode::Complete => IdentityMode::Complete,
             CBoxIdentityMode::Public   => IdentityMode::Public
         };
-        let cbox = try_unwrap!(CBox::file_open_with(&Path::new(path), ident, mode));
+        let cbox = try_unwrap!(CBox::db_open_with(idu,ptr2ref(dbcon).clone(), ident, mode));
         assign(out, Box::into_raw(Box::new(cbox)));
         CBoxResult::Success
     })
@@ -356,22 +414,24 @@ pub enum CBoxResult {
     PreKeyNotFound        = 14,
     Panic                 = 15,
     InitError             = 16,
-    DegeneratedKey        = 17
+    DegeneratedKey        = 17,
+    UuidParseError        = 18,
+    DBPoolError           = 19
 }
 
 impl<S: Store + fmt::Debug> From<CBoxError<S>> for CBoxResult {
     fn from(e: CBoxError<S>) -> CBoxResult {
         let _ = log::error(&e);
         match e {
-            CBoxError::ProteusError(session::Error::RemoteIdentityChanged) => CBoxResult::RemoteIdentityChanged,
-            CBoxError::ProteusError(session::Error::InvalidSignature)      => CBoxResult::InvalidSignature,
-            CBoxError::ProteusError(session::Error::InvalidMessage)        => CBoxResult::InvalidMessage,
-            CBoxError::ProteusError(session::Error::DuplicateMessage)      => CBoxResult::DuplicateMessage,
-            CBoxError::ProteusError(session::Error::TooDistantFuture)      => CBoxResult::TooDistantFuture,
-            CBoxError::ProteusError(session::Error::OutdatedMessage)       => CBoxResult::OutdatedMessage,
-            CBoxError::ProteusError(session::Error::PreKeyNotFound(_))     => CBoxResult::PreKeyNotFound,
-            CBoxError::ProteusError(session::Error::PreKeyStoreError(_))   => CBoxResult::StorageError,
-            CBoxError::ProteusError(session::Error::DegeneratedKey)        => CBoxResult::DegeneratedKey,
+            CBoxError::ProteusError(seError::RemoteIdentityChanged) => CBoxResult::RemoteIdentityChanged,
+            CBoxError::ProteusError(seError::InvalidSignature)      => CBoxResult::InvalidSignature,
+            CBoxError::ProteusError(seError::InvalidMessage)        => CBoxResult::InvalidMessage,
+            CBoxError::ProteusError(seError::DuplicateMessage)      => CBoxResult::DuplicateMessage,
+            CBoxError::ProteusError(seError::TooDistantFuture)      => CBoxResult::TooDistantFuture,
+            CBoxError::ProteusError(seError::OutdatedMessage)       => CBoxResult::OutdatedMessage,
+            CBoxError::ProteusError(seError::PreKeyNotFound(_))     => CBoxResult::PreKeyNotFound,
+            CBoxError::ProteusError(seError::PreKeyStoreError(_))   => CBoxResult::StorageError,
+            CBoxError::ProteusError(seError::DegeneratedKey)        => CBoxResult::DegeneratedKey,
             CBoxError::StorageError(_)                                     => CBoxResult::StorageError,
             CBoxError::DecodeError(_)                                      => CBoxResult::DecodeError,
             CBoxError::EncodeError(_)                                      => CBoxResult::EncodeError,
@@ -380,6 +440,31 @@ impl<S: Store + fmt::Debug> From<CBoxError<S>> for CBoxResult {
         }
     }
 }
+
+
+impl From<PoolError> for CBoxResult {
+    fn from(e: PoolError) -> CBoxResult {
+        let _ = log::error(&e);
+        CBoxResult::DBPoolError
+    }
+}
+
+
+impl From<ParseError> for CBoxResult {
+    fn from(_: ParseError) -> CBoxResult {
+//        let _ = log::error(&e);
+        CBoxResult::UuidParseError
+    }
+}
+
+
+impl From<PgError::Error> for CBoxResult {
+    fn from(e: PgError::Error) -> CBoxResult {
+        let _ = log::error(&e);
+        CBoxResult::StorageError
+    }
+}
+
 
 impl From<str::Utf8Error> for CBoxResult {
     fn from(e: str::Utf8Error) -> CBoxResult {

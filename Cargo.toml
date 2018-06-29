@@ -1,6 +1,6 @@
 [package]
 name         = "cryptobox-c"
-version      = "1.0.0"
+version      = "2.0.0"
 authors      = ["Wire Swiss GmbH <support@wire.com>"]
 description  = "C-FFI to cryptobox"
 homepage     = "https://github.com/wireapp/cryptobox-c"
@@ -8,10 +8,14 @@ repository   = "git@github.com:wireapp/cryptobox-c.git"
 license      = "GPL-3.0"
 
 [lib]
-name         = "cryptobox"
-crate-type   = ["cdylib"]
+name         = "cryptoboxdb"
+crate-type   = ["staticlib","cdylib"]
 
 [dependencies]
-cryptobox = { git = "https://github.com/wireapp/cryptobox", branch = "develop" }
+cryptobox = { git = "https://github.com/zhaohansprt/cryptobox", branch = "crdb" }
 libc      = ">= 0.1.12"
 proteus   = { git = "https://github.com/wireapp/proteus", branch = "develop" }
+r2d2 = "0.8"
+r2d2_postgres = "0.14"   # newer version, uses postgres 0.12
+postgres = { version = "0.15", features = ["with-uuid"] }
+uuid = "0.5"
