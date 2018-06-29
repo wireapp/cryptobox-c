@@ -1,3 +1,6 @@
+.idea
+CMakeLists.txt
+cmake-build-debug
 target
 test/target
 *.swp

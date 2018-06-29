@@ -22,7 +22,6 @@ extern crate r2d2;
 extern crate r2d2_postgres;
 
 
-
 use r2d2::Error as PoolError;
 use r2d2_postgres::{TlsMode, PostgresConnectionManager};
 use cryptobox::{CBox, CBoxError, CBoxSession, Identity, IdentityMode, Armconn, ConnPool};
@@ -47,7 +46,7 @@ use uuid::ParseError;
 
 mod log;
 
-type Armconnpool =  Arc<Mutex<ConnPool>>;
+type Armconnpool = Arc<Mutex<ConnPool>>;
 
 
 
@@ -69,45 +68,61 @@ macro_rules! try_unwrap {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum CBoxIdentityMode {
     Complete = 0,
-    Public   = 1
+    Public = 1,
 }
 
 
 #[no_mangle]
 pub extern
 fn cbox_db_conn_pool(c_sqlurl: *const c_char,
-                     c_size:  uint16_t,
-                out: *mut *mut Armconnpool) -> CBoxResult {
+                     c_size: uint16_t,
+                     out: *mut *mut Armconnpool) -> CBoxResult {
     catch_unwind(|| {
         let sqlurl = try_unwrap!(to_str(c_sqlurl, 4096));
         let manager = PostgresConnectionManager::new(sqlurl, TlsMode::None).unwrap();
         let pool = r2d2::Pool::builder().max_size(c_size.into()).build(manager).unwrap();
 
-        assign(out, Box::into_raw(Box::new( Arc::new(Mutex::new(pool))) ));
+        assign(out, Box::into_raw(Box::new(Arc::new(Mutex::new(pool)))));
         CBoxResult::Success
     })
 }
 
+#[no_mangle]
+pub extern fn cbox_conn_pool_close(b: *mut Armconnpool) {
+    debug_assert!(!b.is_null());
+    catch_unwind(|| {
+        unsafe { Box::from_raw(b); }
+        CBoxResult::Success
+    });
+}
 
 #[no_mangle]
 pub extern
 fn cbox_db_conn(c_pool: *const Armconnpool,
                 out: *mut *mut Armconn) -> CBoxResult {
     catch_unwind(|| {
-        let pool =ptr2ref(c_pool).clone();
+        let pool = ptr2ref(c_pool).clone();
         let conn = try_unwrap!(pool.lock().unwrap().get());
-        assign(out, Box::into_raw(Box::new( Arc::new(Mutex::new(conn)))));
+        assign(out, Box::into_raw(Box::new(Arc::new(Mutex::new(conn)))));
         CBoxResult::Success
     })
 }
 
 
+#[no_mangle]
+pub extern fn cbox_conn_close(b: *mut Armconn) {
+    debug_assert!(!b.is_null());
+    catch_unwind(|| {
+        unsafe { Box::from_raw(b); }
+        CBoxResult::Success
+    });
+}
 
 #[no_mangle]
 pub extern
 fn cbox_db_open(id_c: *const c_char,
-                  dbcon: *const Armconn,
-                  out: *mut *mut CBox<FileStore>) -> CBoxResult {
+                dbcon: *const Armconn,
+                out: *mut *mut CBox<FileStore>) -> CBoxResult {
     catch_unwind(|| {
         let id = try_unwrap!(to_str(id_c, 4096));
         let idu = try_unwrap!(Uuid::parse_str(id));
@@ -120,23 +135,23 @@ fn cbox_db_open(id_c: *const c_char,
 #[no_mangle]
 pub extern
 fn cbox_db_open_with(id_c: *const c_char,
-                       dbcon: *const Armconn,
-                       c_id:     *const uint8_t,
-                       c_id_len: size_t,
-                       c_mode:   CBoxIdentityMode,
-                       out:      *mut *mut CBox<FileStore>) -> CBoxResult
+                     dbcon: *const Armconn,
+                     c_id: *const uint8_t,
+                     c_id_len: size_t,
+                     c_mode: CBoxIdentityMode,
+                     out: *mut *mut CBox<FileStore>) -> CBoxResult
 {
     catch_unwind(|| {
         let idstr = try_unwrap!(to_str(id_c, 4096));
         let idu = try_unwrap!(Uuid::parse_str(idstr));
         let id_slice = to_slice(c_id, c_id_len);
-        let ident    = match try_unwrap!(Identity::deserialise(id_slice)) {
+        let ident = match try_unwrap!(Identity::deserialise(id_slice)) {
             Identity::Sec(i) => i.into_owned(),
             Identity::Pub(_) => return CBoxResult::IdentityError
         };
         let mode = match c_mode {
             CBoxIdentityMode::Complete => IdentityMode::Complete,
-            CBoxIdentityMode::Public   => IdentityMode::Public
+            CBoxIdentityMode::Public => IdentityMode::Public
         };
         let cbox = try_unwrap!(CBox::db_open_with(idu,ptr2ref(dbcon).clone(), ident, mode));
         assign(out, Box::into_raw(Box::new(cbox)));
@@ -200,7 +215,7 @@ pub extern
 fn cbox_new_prekey(cbox: *const CBox<FileStore>, pkid: uint16_t, out: *mut *mut Vec<u8>) -> CBoxResult {
     catch_unwind(|| {
         let bundle = try_unwrap!(ptr2ref(cbox).new_prekey(PreKeyId::new(pkid)));
-        let bytes  = try_unwrap!(bundle.serialise());
+        let bytes = try_unwrap!(bundle.serialise());
         assign(out, Box::into_raw(Box::new(bytes)));
         CBoxResult::Success
     })
@@ -210,15 +225,15 @@ fn cbox_new_prekey(cbox: *const CBox<FileStore>, pkid: uint16_t, out: *mut *mut 
 
 #[no_mangle]
 pub extern fn cbox_session_init_from_prekey
-    (cbox:         *const CBox<FileStore>,
-     c_sid:        *const c_char,
-     c_prekey:     *const uint8_t,
-     c_prekey_len: size_t,
-     out:          *mut *mut CBoxSession<FileStore>) -> CBoxResult
+(cbox: *const CBox<FileStore>,
+ c_sid: *const c_char,
+ c_prekey: *const uint8_t,
+ c_prekey_len: size_t,
+ out: *mut *mut CBoxSession<FileStore>) -> CBoxResult
 {
     catch_unwind(|| {
-        let sid     = try_unwrap!(to_str(c_sid, 1024));
-        let prekey  = to_slice(c_prekey, c_prekey_len);
+        let sid = try_unwrap!(to_str(c_sid, 1024));
+        let prekey = to_slice(c_prekey, c_prekey_len);
         let session = try_unwrap!(ptr2ref(cbox).session_from_prekey(String::from(sid), prekey));
         assign(out, Box::into_raw(Box::new(session)));
         CBoxResult::Success
@@ -227,16 +242,16 @@ pub extern fn cbox_session_init_from_prekey
 
 #[no_mangle]
 pub extern fn cbox_session_init_from_message
-    (cbox:         *const CBox<FileStore>,
-     c_sid:        *const c_char,
-     c_cipher:     *const uint8_t,
-     c_cipher_len: size_t,
-     c_sess:       *mut *mut CBoxSession<FileStore>,
-     c_plain:      *mut *mut Vec<u8>) -> CBoxResult
+(cbox: *const CBox<FileStore>,
+ c_sid: *const c_char,
+ c_cipher: *const uint8_t,
+ c_cipher_len: size_t,
+ c_sess: *mut *mut CBoxSession<FileStore>,
+ c_plain: *mut *mut Vec<u8>) -> CBoxResult
 {
     catch_unwind(|| {
-        let sid    = try_unwrap!(to_str(c_sid, 1024));
-        let env    = to_slice(c_cipher, c_cipher_len);
+        let sid = try_unwrap!(to_str(c_sid, 1024));
+        let env = to_slice(c_cipher, c_cipher_len);
         let (s, v) = try_unwrap!(ptr2ref(cbox).session_from_message(String::from(sid), env));
         assign(c_plain, Box::into_raw(Box::new(v)));
         assign(c_sess, Box::into_raw(Box::new(s)));
@@ -246,14 +261,14 @@ pub extern fn cbox_session_init_from_message
 
 #[no_mangle]
 pub extern fn cbox_session_load
-    (cbox:  *const CBox<FileStore>,
-     c_sid: *const c_char,
-     out:   *mut *mut CBoxSession<FileStore>) -> CBoxResult
+(cbox: *const CBox<FileStore>,
+ c_sid: *const c_char,
+ out: *mut *mut CBoxSession<FileStore>) -> CBoxResult
 {
     catch_unwind(|| {
-        let sid     = try_unwrap!(to_str(c_sid, 1024));
+        let sid = try_unwrap!(to_str(c_sid, 1024));
         let session = match try_unwrap!(ptr2ref(cbox).session_load(String::from(sid))) {
-            None    => return CBoxResult::SessionNotFound,
+            None => return CBoxResult::SessionNotFound,
             Some(s) => s
         };
         assign(out, Box::into_raw(Box::new(session)));
@@ -272,13 +287,13 @@ pub extern fn cbox_session_close(b: *mut CBoxSession<FileStore>) {
 
 #[no_mangle]
 pub extern fn cbox_encrypt
-    (session:     *mut CBoxSession<FileStore>,
-     c_plain:     *const uint8_t,
-     c_plain_len: size_t,
-     out:         *mut *mut Vec<u8>) -> CBoxResult
+(session: *mut CBoxSession<FileStore>,
+ c_plain: *const uint8_t,
+ c_plain_len: size_t,
+ out: *mut *mut Vec<u8>) -> CBoxResult
 {
     catch_unwind(move || {
-        let plain  = to_slice(c_plain, c_plain_len);
+        let plain = to_slice(c_plain, c_plain_len);
         let cipher = try_unwrap!(ptr2mut(session).encrypt(plain));
         assign(out, Box::into_raw(Box::new(cipher)));
         CBoxResult::Success
@@ -287,13 +302,13 @@ pub extern fn cbox_encrypt
 
 #[no_mangle]
 pub extern fn cbox_decrypt
-    (session:      *mut CBoxSession<FileStore>,
-     c_cipher:     *const uint8_t,
-     c_cipher_len: size_t,
-     out:          *mut *mut Vec<u8>) -> CBoxResult
+(session: *mut CBoxSession<FileStore>,
+ c_cipher: *const uint8_t,
+ c_cipher_len: size_t,
+ out: *mut *mut Vec<u8>) -> CBoxResult
 {
     catch_unwind(move || {
-        let env   = to_slice(c_cipher, c_cipher_len);
+        let env = to_slice(c_cipher, c_cipher_len);
         let plain = try_unwrap!(ptr2mut(session).decrypt(env));
         assign(out, Box::into_raw(Box::new(plain)));
         CBoxResult::Success
@@ -356,7 +371,7 @@ fn to_str<'r>(s: *const c_char, n: size_t) -> Result<&'r str, CBoxResult> {
     let slen =
         match unsafe { libc::strnlen(s, n) } {
             k if k == n => return Err(CBoxResult::NulError),
-            k           => k + 1 // count \0-byte
+            k => k + 1 // count \0-byte
         };
     let cstr = unsafe {
         let bytes = slice::from_raw_parts(s, slen);
@@ -397,26 +412,26 @@ fn ptr2mut<'a, A>(p: *mut A) -> &'a mut A {
 #[no_mangle]
 #[derive(Clone, Copy, Debug)]
 pub enum CBoxResult {
-    Success               = 0,
-    StorageError          = 1,
-    SessionNotFound       = 2,
-    DecodeError           = 3,
+    Success = 0,
+    StorageError = 1,
+    SessionNotFound = 2,
+    DecodeError = 3,
     RemoteIdentityChanged = 4,
-    InvalidSignature      = 5,
-    InvalidMessage        = 6,
-    DuplicateMessage      = 7,
-    TooDistantFuture      = 8,
-    OutdatedMessage       = 9,
-    Utf8Error             = 10,
-    NulError              = 11,
-    EncodeError           = 12,
-    IdentityError         = 13,
-    PreKeyNotFound        = 14,
-    Panic                 = 15,
-    InitError             = 16,
-    DegeneratedKey        = 17,
-    UuidParseError        = 18,
-    DBPoolError           = 19
+    InvalidSignature = 5,
+    InvalidMessage = 6,
+    DuplicateMessage = 7,
+    TooDistantFuture = 8,
+    OutdatedMessage = 9,
+    Utf8Error = 10,
+    NulError = 11,
+    EncodeError = 12,
+    IdentityError = 13,
+    PreKeyNotFound = 14,
+    Panic = 15,
+    InitError = 16,
+    DegeneratedKey = 17,
+    UuidParseError = 18,
+    DBPoolError = 19,
 }
 
 impl<S: Store + fmt::Debug> From<CBoxError<S>> for CBoxResult {
@@ -424,19 +439,19 @@ impl<S: Store + fmt::Debug> From<CBoxError<S>> for CBoxResult {
         let _ = log::error(&e);
         match e {
             CBoxError::ProteusError(seError::RemoteIdentityChanged) => CBoxResult::RemoteIdentityChanged,
-            CBoxError::ProteusError(seError::InvalidSignature)      => CBoxResult::InvalidSignature,
-            CBoxError::ProteusError(seError::InvalidMessage)        => CBoxResult::InvalidMessage,
-            CBoxError::ProteusError(seError::DuplicateMessage)      => CBoxResult::DuplicateMessage,
-            CBoxError::ProteusError(seError::TooDistantFuture)      => CBoxResult::TooDistantFuture,
-            CBoxError::ProteusError(seError::OutdatedMessage)       => CBoxResult::OutdatedMessage,
-            CBoxError::ProteusError(seError::PreKeyNotFound(_))     => CBoxResult::PreKeyNotFound,
-            CBoxError::ProteusError(seError::PreKeyStoreError(_))   => CBoxResult::StorageError,
-            CBoxError::ProteusError(seError::DegeneratedKey)        => CBoxResult::DegeneratedKey,
-            CBoxError::StorageError(_)                                     => CBoxResult::StorageError,
-            CBoxError::DecodeError(_)                                      => CBoxResult::DecodeError,
-            CBoxError::EncodeError(_)                                      => CBoxResult::EncodeError,
-            CBoxError::IdentityError                                       => CBoxResult::IdentityError,
-            CBoxError::InitError                                           => CBoxResult::InitError
+            CBoxError::ProteusError(seError::InvalidSignature) => CBoxResult::InvalidSignature,
+            CBoxError::ProteusError(seError::InvalidMessage) => CBoxResult::InvalidMessage,
+            CBoxError::ProteusError(seError::DuplicateMessage) => CBoxResult::DuplicateMessage,
+            CBoxError::ProteusError(seError::TooDistantFuture) => CBoxResult::TooDistantFuture,
+            CBoxError::ProteusError(seError::OutdatedMessage) => CBoxResult::OutdatedMessage,
+            CBoxError::ProteusError(seError::PreKeyNotFound(_)) => CBoxResult::PreKeyNotFound,
+            CBoxError::ProteusError(seError::PreKeyStoreError(_)) => CBoxResult::StorageError,
+            CBoxError::ProteusError(seError::DegeneratedKey) => CBoxResult::DegeneratedKey,
+            CBoxError::StorageError(_) => CBoxResult::StorageError,
+            CBoxError::DecodeError(_) => CBoxResult::DecodeError,
+            CBoxError::EncodeError(_) => CBoxResult::EncodeError,
+            CBoxError::IdentityError => CBoxResult::IdentityError,
+            CBoxError::InitError => CBoxResult::InitError
         }
     }
 }
@@ -489,7 +504,7 @@ impl From<EncodeError> for CBoxResult {
 
 fn catch_unwind<F>(f: F) -> CBoxResult where F: FnOnce() -> CBoxResult + UnwindSafe {
     match panic::catch_unwind(f) {
-        Ok(x)  => x,
+        Ok(x) => x,
         Err(_) => CBoxResult::Panic
     }
 }

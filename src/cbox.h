@@ -133,12 +133,13 @@ typedef struct ConnPool ConnPool;
 
 CBoxResult cbox_db_conn_pool(char const * p, uint16_t s, ConnPool ** cp);
 
-
+void cbox_conn_pool_close(ConnPool * s);
 
 typedef struct Armconn Armconn;
 
 CBoxResult cbox_db_conn(ConnPool const * p, Armconn ** c);
 
+void cbox_conn_close(Armconn * s);
 
 // CBox /////////////////////////////////////////////////////////////////////
 
