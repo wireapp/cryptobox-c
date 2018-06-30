@@ -29,37 +29,44 @@ compile:
 compile-release:
 	cargo build --release
 
+testgo: compile test-compilego
+
+test-compilego:
+	cp target/debug/libcryptoboxdb.$(LIB_TYPE) /usr/lib/
+	cd go
+	go run main.go
+	
 test: compile test-compile
 	$(LIB_PATH)=test/target valgrind --leak-check=full --error-exitcode=1 --track-origins=yes test/target/main
 
 test-compile:
 	mkdir -p test/target
-	cp target/debug/libcryptobox.$(LIB_TYPE) test/target/libcryptobox.$(LIB_TYPE)
+	cp target/debug/libcryptoboxdb.$(LIB_TYPE) test/target/libcryptoboxdb.$(LIB_TYPE)
 	rm -f test/target/main
-	$(CC) -std=c99 -Wall -Wextra -Werror -g test/main.c -o test/target/main -Isrc -Ltest/target -lcryptobox
+	$(CC) -std=c99 -Wall -Wextra -Werror -g test/main.c -o test/target/main -Isrc -Ltest/target -lcryptoboxdb
 
 bench: bench-compile
 	$(LIB_PATH)=test/target test/target/bench
 
 bench-compile: compile-release
 	mkdir -p test/target
-	cp target/release/libcryptobox.$(LIB_TYPE) test/target/libcryptobox.$(LIB_TYPE)
+	cp target/release/libcryptoboxdb.$(LIB_TYPE) test/target/libcryptoboxdb.$(LIB_TYPE)
 	rm -f test/target/bench
-	$(CC) -std=c99 -Wall -Wextra -Werror -g test/bench.c -o test/target/bench -Isrc -Ltest/target -lcryptobox
+	$(CC) -std=c99 -Wall -Wextra -Werror -g test/bench.c -o test/target/bench -Isrc -Ltest/target -lcryptoboxdb
 
 install: compile-release
 	cp src/cbox.h $(TARGET_INCLUDE)
-	cp target/release/libcryptobox.$(LIB_TYPE) $(TARGET_LIB)
+	cp target/release/libcryptoboxdb.$(LIB_TYPE) $(TARGET_LIB)
 
 uninstall:
 	rm -f $(TARGET_INCLUDE)/cbox.h
-	rm -f $(TARGET_LIB)/libcryptobox.$(LIB_TYPE)
+	rm -f $(TARGET_LIB)/libcryptoboxdb.$(LIB_TYPE)
 
 dist: compile-release
 	mkdir -p deb/usr/include
 	mkdir -p deb/usr/lib
 	cp src/cbox.h deb/usr/include
-	cp target/release/libcryptobox.$(LIB_TYPE) deb/usr/lib
+	cp target/release/libcryptoboxdb.$(LIB_TYPE) deb/usr/lib
 ifeq ($(OS), linux)
 	makedeb --name=cryptobox       \
 			--version=$(VERSION)   \
