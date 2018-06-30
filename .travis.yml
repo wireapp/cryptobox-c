@@ -14,4 +14,4 @@ install:
     - tar -xzf libsodium-stable-2018-06-30.tar.gz
     - cd libsodium-stable && ./configure --prefix=/usr && make && sudo make install && cd ..
 
-script: make testgo
+script: make
