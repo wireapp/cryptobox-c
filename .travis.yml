@@ -12,6 +12,6 @@ install:
     - sudo apt-get install -y valgrind
     - wget "https://download.libsodium.org/libsodium/releases/libsodium-stable-2018-06-30.tar.gz"
     - tar -xzf libsodium-stable-2018-06-30.tar.gz
-    - cd libsodium-stable-2018-06-30 && ./configure --prefix=/usr && make && sudo make install && cd ..
+    - cd libsodium-stable && ./configure --prefix=/usr && make && sudo make install && cd ..
 
 script: make testgo
