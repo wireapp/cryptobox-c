@@ -12,7 +12,7 @@ name         = "cryptoboxdb"
 crate-type   = ["staticlib","cdylib"]
 
 [dependencies]
-cryptobox = { git = "https://github.com/zhaohansprt/cryptobox", branch = "crdb" }
+cryptobox = { git = "https://github.com/wireapp/cryptobox", branch = "cockroachdb-experimental" }
 libc      = ">= 0.1.12"
 proteus   = { git = "https://github.com/wireapp/proteus", branch = "develop" }
 r2d2 = "0.8"
