@@ -1,13 +1,17 @@
 language: rust
-rust: nightly
+
+rust: 
+    - stable
 
 before_install:
     - sudo apt-get update -qq
+    - sudo apt install golang
+    - sudo apt install clang
 
 install:
     - sudo apt-get install -y valgrind
-    - wget "https://github.com/jedisct1/libsodium/releases/download/1.0.6/libsodium-1.0.6.tar.gz"
-    - tar -xzf libsodium-1.0.6.tar.gz
-    - cd libsodium-1.0.6 && ./configure --prefix=/usr && make && sudo make install && cd ..
+    - wget "https://download.libsodium.org/libsodium/releases/libsodium-stable-2018-06-30.tar.gz"
+    - tar -xzf libsodium-stable-2018-06-30.tar.gz
+    - cd libsodium-stable && ./configure --prefix=/usr && make && sudo make install && cd ..
 
-script: make test
+script: make
