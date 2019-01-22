@@ -1,8 +1,8 @@
 SHELL   := /usr/bin/env bash
 VERSION := "0.8.3"
-ARCH    := amd64
+ARCH    := $(shell [ -f "`which dpkg-architecture`" ]  && dpkg-architecture -qDEB_HOST_ARCH )
 BUILD   ?= 1
-OS		:= $(shell uname -s | tr '[:upper:]' '[:lower:]')
+OS      := $(shell uname -s | tr '[:upper:]' '[:lower:]')
 
 TARGET_LIB ?= /usr/local/lib
 TARGET_INCLUDE ?= /usr/local/include

@@ -1,6 +1,6 @@
 Package: cryptobox
 Version: <<VERSION_NUMBER>>+<<BUILD_NUMBER>>
 Maintainer: Wire Swiss GmbH <support@wire.com>
-Architecture: amd64
+Architecture: <<ARCHITECTURE>>
 Depends: libsodium-dev
 Description: High-level C API with persistent storage for proteus
