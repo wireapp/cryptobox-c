@@ -3,8 +3,8 @@ name         = "cryptobox-c"
 version      = "1.0.0"
 authors      = ["Wire Swiss GmbH <support@wire.com>"]
 description  = "C-FFI to cryptobox"
-homepage     = "https://github.com/typfel/cryptobox-c"
-repository   = "git@github.com:typfel/cryptobox-c.git"
+homepage     = "https://github.com/wireapp/cryptobox-c"
+repository   = "git@github.com:wireapp/cryptobox-c.git"
 license      = "GPL-3.0"
 
 [lib]
