@@ -268,7 +268,7 @@ fn cbox_fingerprint_prekey(c_prekey: *const uint8_t, c_prekey_len: size_t, out: 
     catch_unwind(|| {
         let prekey = to_slice(c_prekey, c_prekey_len);
         let prekey = try_unwrap!(PreKeyBundle::deserialise(prekey));
-        let fp = prekey.public_key.fingerprint().into_bytes();
+        let fp = prekey.identity_key.fingerprint().into_bytes();
         assign(out, Box::into_raw(Box::new(fp)));
         CBoxResult::Success
     })
