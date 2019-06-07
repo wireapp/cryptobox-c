@@ -22,7 +22,7 @@ use cryptobox::store::Store;
 use cryptobox::store::file::FileStore;
 use libc::{c_char, c_ushort, size_t, uint8_t, uint16_t};
 use proteus::{DecodeError, EncodeError};
-use proteus::keys::{self, PreKeyId, PreKeyBundle};
+use proteus::keys::{self, PreKeyId, PreKeyBundle, PreKey};
 use proteus::session;
 use std::borrow::Cow;
 use std::ffi::CStr;
@@ -267,8 +267,8 @@ pub extern
 fn cbox_fingerprint_prekey(c_prekey: *const uint8_t, c_prekey_len: size_t, out: *mut *mut Vec<u8>) -> CBoxResult {
     catch_unwind(|| {
         let prekey = to_slice(c_prekey, c_prekey_len);
-        let prekey = try_unwrap!(PreKeyBundle::deserialise(prekey));
-        let fp = prekey.public_key.fingerprint().into_bytes();
+        let prekey = try_unwrap!(PreKey::deserialise(prekey));
+        let fp = prekey.key_pair.public_key.fingerprint().into_bytes();
         assign(out, Box::into_raw(Box::new(fp)));
         CBoxResult::Success
     })
