@@ -161,6 +161,34 @@ void test_random_bytes(CBox const * b) {
     printf("OK\n");
 }
 
+void test_fingerprint_prekey(CBox const * b) {
+    printf("test_fingerprint_prekey ... ");
+
+    CBoxResult rc = CBOX_SUCCESS;
+    CBoxVec * prekey = NULL;
+
+    rc = cbox_new_prekey(b, 42, &prekey);
+    assert(rc == CBOX_SUCCESS);
+
+    CBoxVec * fingerprint_local = NULL;
+    CBoxVec * fingerprint_prekey = NULL;
+
+    rc = cbox_fingerprint_local(b, &fingerprint_local);
+    assert(rc == CBOX_SUCCESS);
+
+    rc = cbox_fingerprint_prekey(cbox_vec_data(prekey), cbox_vec_len(prekey), &fingerprint_prekey);
+    assert(rc == CBOX_SUCCESS);
+
+    assert(strncmp((char const *) cbox_vec_data(fingerprint_local), (char const *) cbox_vec_data(fingerprint_prekey), cbox_vec_len(fingerprint_prekey)) == 0);
+
+    // Cleanup
+    cbox_vec_free(fingerprint_local);
+    cbox_vec_free(fingerprint_prekey);
+    cbox_vec_free(prekey);
+
+    printf("OK\n");
+}
+
 void test_prekey_check(CBox const * b) {
     printf("test_is_prekey ... ");
 
@@ -443,6 +471,7 @@ int main() {
     test_box_reopen();
     test_external_identity();
     test_wrong_identity();
+    test_fingerprint_prekey(alice_box);
 
     // Cleanup
     cbox_close(alice_box);

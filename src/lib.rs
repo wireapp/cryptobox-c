@@ -264,6 +264,18 @@ fn cbox_fingerprint_remote(session: *const CBoxSession<FileStore>, out: *mut *mu
 
 #[no_mangle]
 pub extern
+fn cbox_fingerprint_prekey(c_prekey: *const uint8_t, c_prekey_len: size_t, out: *mut *mut Vec<u8>) -> CBoxResult {
+    catch_unwind(|| {
+        let prekey = to_slice(c_prekey, c_prekey_len);
+        let prekey = try_unwrap!(PreKeyBundle::deserialise(prekey));
+        let fp = prekey.identity_key.fingerprint().into_bytes();
+        assign(out, Box::into_raw(Box::new(fp)));
+        CBoxResult::Success
+    })
+}
+
+#[no_mangle]
+pub extern
 fn cbox_is_prekey(c_prekey: *const uint8_t, c_prekey_len: size_t, id: *mut uint16_t) -> CBoxResult {
     catch_unwind(|| {
         let prekey = to_slice(c_prekey, c_prekey_len);
