@@ -6,8 +6,8 @@ before_install:
 
 install:
     - sudo apt-get install -y valgrind
-    - wget "https://github.com/jedisct1/libsodium/releases/download/1.0.6/libsodium-1.0.6.tar.gz"
-    - tar -xzf libsodium-1.0.6.tar.gz
-    - cd libsodium-1.0.6 && ./configure --prefix=/usr && make && sudo make install && cd ..
+    - wget "https://github.com/jedisct1/libsodium/releases/download/1.0.16/libsodium-1.0.16.tar.gz"
+    - tar -xzf libsodium-1.0.16.tar.gz
+    - cd libsodium-1.0.16 && ./configure --prefix=/usr && make && sudo make install && cd ..
 
 script: make test
