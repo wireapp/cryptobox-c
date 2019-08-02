@@ -13,5 +13,5 @@ crate-type   = ["cdylib"]
 
 [dependencies]
 cryptobox = { git = "https://github.com/wireapp/cryptobox", branch = "bump_sodiumoxide" }
-libc      = ">= 0.1.12"
+libc      = "0.2"
 proteus   = { git = "https://github.com/wireapp/proteus", branch = "bump_sodiumoxide" }
