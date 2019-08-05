@@ -37,11 +37,13 @@ mod target {
     }
 
     fn log(msg: &str, lvl: c_int) -> Result<()> {
-        unsafe {
-            let tag = CStr::from_ptr(TAG.as_ptr());
-            let msg = CStr::from_ptr(msg.as_ptr());
-            __android_log_write(lvl, tag.as_ptr(), msg.as_ptr());
-        }
+        // FIXME: This does not work for certain platform where there is a type mismatch
+        //        because c_char is not equal to u8
+        // unsafe {
+        //     let tag = CStr::from_ptr(TAG.as_ptr());
+        //     let msg = CStr::from_ptr(msg.as_ptr());
+        //     __android_log_write(lvl, tag.as_ptr(), msg.as_ptr());
+        // }
         Ok(())
     }
 
