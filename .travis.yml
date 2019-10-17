@@ -1,13 +1,14 @@
 language: rust
 rust: nightly
+cache: cargo # cache cargo-audit once installed
 
 before_install:
     - sudo apt-get update -qq
 
 install:
     - sudo apt-get install -y valgrind
-    - wget "https://github.com/jedisct1/libsodium/releases/download/1.0.16/libsodium-1.0.16.tar.gz"
-    - tar -xzf libsodium-1.0.16.tar.gz
-    - cd libsodium-1.0.16 && ./configure --prefix=/usr && make && sudo make install && cd ..
+    - cargo install --force cargo-audit
 
-script: make test
+script:
+  - make test
+  - cargo audit
