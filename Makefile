@@ -23,6 +23,10 @@ clean:
 	rm -f deb/usr/include/*.h
 	rm -f deb/usr/lib/*.so
 
+audit:
+	type -P cargo-audit || cargo install cargo-audit
+	cargo audit
+
 compile:
 	cargo build
 
