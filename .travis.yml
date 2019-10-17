@@ -12,3 +12,8 @@ install:
 script:
   - make test
   - cargo audit
+
+notifications:
+  email:
+    recipients:
+      - backend+travis@wire.com
