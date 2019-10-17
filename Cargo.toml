@@ -1,6 +1,6 @@
 [package]
 name         = "cryptobox-c"
-version      = "1.1.2"
+version      = "1.1.3"
 authors      = ["Wire Swiss GmbH <support@wire.com>"]
 description  = "C-FFI to cryptobox"
 homepage     = "https://github.com/wireapp/cryptobox-c"
@@ -12,6 +12,6 @@ name         = "cryptobox"
 crate-type   = ["cdylib"]
 
 [dependencies]
-cryptobox = { git = "https://github.com/wireapp/cryptobox", tag = "v1.0.2" }
+cryptobox = { git = "https://github.com/wireapp/cryptobox", tag = "v1.0.3" }
 libc      = "0.2"
-proteus   = { git = "https://github.com/wireapp/proteus", tag = "v1.0.2" }
+proteus   = { git = "https://github.com/wireapp/proteus", tag = "v1.0.3" }
