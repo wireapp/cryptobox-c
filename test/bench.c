@@ -48,7 +48,7 @@ void bench_session_save(CBox * alice_box, CBox * bob_box) {
     assert(rc == CBOX_SUCCESS);
     rc = cbox_session_save(alice_box, alice);
     assert(rc == CBOX_SUCCESS);
-    uint8_t const hello_bob[] = "Hello Bob!";
+    u8 const hello_bob[] = "Hello Bob!";
     CBoxVec * cipher = NULL;
     rc = cbox_encrypt(alice, hello_bob, sizeof(hello_bob), &cipher);
     assert(rc == CBOX_SUCCESS);

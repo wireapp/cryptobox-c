@@ -20,7 +20,7 @@ extern crate proteus;
 use cryptobox::{CBox, CBoxError, CBoxSession, Identity, IdentityMode};
 use cryptobox::store::Store;
 use cryptobox::store::file::FileStore;
-use libc::{c_char, c_ushort, size_t, uint8_t, uint16_t};
+use libc::{c_char, c_ushort, size_t};
 use proteus::{DecodeError, EncodeError};
 use proteus::keys::{self, PreKeyId, PreKeyBundle};
 use proteus::session;
@@ -64,7 +64,7 @@ fn cbox_file_open(c_path: *const c_char, out: *mut *mut CBox<FileStore>) -> CBox
 #[no_mangle]
 pub extern
 fn cbox_file_open_with(c_path:   *const c_char,
-                       c_id:     *const uint8_t,
+                       c_id:     *const u8,
                        c_id_len: size_t,
                        c_mode:   CBoxIdentityMode,
                        out:      *mut *mut CBox<FileStore>) -> CBoxResult
@@ -139,7 +139,7 @@ pub static CBOX_LAST_PREKEY_ID: c_ushort = u16::MAX;
 
 #[no_mangle]
 pub extern
-fn cbox_new_prekey(cbox: *const CBox<FileStore>, pkid: uint16_t, out: *mut *mut Vec<u8>) -> CBoxResult {
+fn cbox_new_prekey(cbox: *const CBox<FileStore>, pkid: u16, out: *mut *mut Vec<u8>) -> CBoxResult {
     catch_unwind(|| {
         let bundle = try_unwrap!(ptr2ref(cbox).new_prekey(PreKeyId::new(pkid)));
         let bytes  = try_unwrap!(bundle.serialise());
@@ -154,7 +154,7 @@ fn cbox_new_prekey(cbox: *const CBox<FileStore>, pkid: uint16_t, out: *mut *mut 
 pub extern fn cbox_session_init_from_prekey
     (cbox:         *const CBox<FileStore>,
      c_sid:        *const c_char,
-     c_prekey:     *const uint8_t,
+     c_prekey:     *const u8,
      c_prekey_len: size_t,
      out:          *mut *mut CBoxSession<FileStore>) -> CBoxResult
 {
@@ -171,7 +171,7 @@ pub extern fn cbox_session_init_from_prekey
 pub extern fn cbox_session_init_from_message
     (cbox:         *const CBox<FileStore>,
      c_sid:        *const c_char,
-     c_cipher:     *const uint8_t,
+     c_cipher:     *const u8,
      c_cipher_len: size_t,
      c_sess:       *mut *mut CBoxSession<FileStore>,
      c_plain:      *mut *mut Vec<u8>) -> CBoxResult
@@ -215,7 +215,7 @@ pub extern fn cbox_session_close(b: *mut CBoxSession<FileStore>) {
 #[no_mangle]
 pub extern fn cbox_encrypt
     (session:     *mut CBoxSession<FileStore>,
-     c_plain:     *const uint8_t,
+     c_plain:     *const u8,
      c_plain_len: size_t,
      out:         *mut *mut Vec<u8>) -> CBoxResult
 {
@@ -230,7 +230,7 @@ pub extern fn cbox_encrypt
 #[no_mangle]
 pub extern fn cbox_decrypt
     (session:      *mut CBoxSession<FileStore>,
-     c_cipher:     *const uint8_t,
+     c_cipher:     *const u8,
      c_cipher_len: size_t,
      out:          *mut *mut Vec<u8>) -> CBoxResult
 {
@@ -264,7 +264,7 @@ fn cbox_fingerprint_remote(session: *const CBoxSession<FileStore>, out: *mut *mu
 
 #[no_mangle]
 pub extern
-fn cbox_fingerprint_prekey(c_prekey: *const uint8_t, c_prekey_len: size_t, out: *mut *mut Vec<u8>) -> CBoxResult {
+fn cbox_fingerprint_prekey(c_prekey: *const u8, c_prekey_len: size_t, out: *mut *mut Vec<u8>) -> CBoxResult {
     catch_unwind(|| {
         let prekey = to_slice(c_prekey, c_prekey_len);
         let prekey = try_unwrap!(PreKeyBundle::deserialise(prekey));
@@ -276,7 +276,7 @@ fn cbox_fingerprint_prekey(c_prekey: *const uint8_t, c_prekey_len: size_t, out: 
 
 #[no_mangle]
 pub extern
-fn cbox_is_prekey(c_prekey: *const uint8_t, c_prekey_len: size_t, id: *mut uint16_t) -> CBoxResult {
+fn cbox_is_prekey(c_prekey: *const u8, c_prekey_len: size_t, id: *mut u16) -> CBoxResult {
     catch_unwind(|| {
         let prekey = to_slice(c_prekey, c_prekey_len);
         let prekey = try_unwrap!(PreKeyBundle::deserialise(prekey));
@@ -294,7 +294,7 @@ pub extern fn cbox_vec_free(b: *mut Vec<u8>) {
 }
 
 #[no_mangle]
-pub extern fn cbox_vec_data(v: *const Vec<u8>) -> *const uint8_t {
+pub extern fn cbox_vec_data(v: *const Vec<u8>) -> *const u8 {
     ptr2ref(v).as_ptr()
 }
 
