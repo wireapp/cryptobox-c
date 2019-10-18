@@ -51,7 +51,7 @@ void test_basics(CBox * alice_box, CBox * bob_box) {
     char const * hello_bob = "Hello Bob!";
     size_t hello_bob_len = strlen(hello_bob);
     CBoxVec * cipher = NULL;
-    rc = cbox_encrypt(alice, (u8 const *) hello_bob, hello_bob_len, &cipher);
+    rc = cbox_encrypt(alice, (uint8_t const *) hello_bob, hello_bob_len, &cipher);
     assert(rc == CBOX_SUCCESS);
     assert(strncmp(hello_bob, (char const *) cbox_vec_data(cipher), hello_bob_len) != 0);
 
@@ -117,7 +117,7 @@ void test_prekey_removal(CBox * alice_box, CBox * bob_box) {
     CBoxSession * alice = NULL;
     rc = cbox_session_init_from_prekey(alice_box, "alice", cbox_vec_data(bob_prekey), cbox_vec_len(bob_prekey), &alice);
     assert(rc == CBOX_SUCCESS);
-    u8 const hello_bob[] = "Hello Bob!";
+    uint8_t const hello_bob[] = "Hello Bob!";
     CBoxVec * cipher = NULL;
     rc = cbox_encrypt(alice, hello_bob, sizeof(hello_bob), &cipher);
     assert(rc == CBOX_SUCCESS);
@@ -192,7 +192,7 @@ void test_fingerprint_prekey(CBox const * b) {
 void test_prekey_check(CBox const * b) {
     printf("test_is_prekey ... ");
 
-    u16 prekey_id = 0;
+    uint16_t prekey_id = 0;
 
     CBoxVec * random = NULL;
     CBoxResult rc = cbox_random_bytes(b, 16, &random);
@@ -225,7 +225,7 @@ void test_last_prekey(CBox * alice_box, CBox * bob_box) {
     rc = cbox_session_init_from_prekey(alice_box, "alice", cbox_vec_data(bob_prekey), cbox_vec_len(bob_prekey), &alice);
     cbox_vec_free(bob_prekey);
     assert(rc == CBOX_SUCCESS);
-    u8 const hello_bob[] = "Hello Bob!";
+    uint8_t const hello_bob[] = "Hello Bob!";
     CBoxVec * cipher = NULL;
     rc = cbox_encrypt(alice, hello_bob, sizeof(hello_bob), &cipher);
     assert(rc == CBOX_SUCCESS);
@@ -262,7 +262,7 @@ void test_duplicate_msg(CBox * alice_box, CBox * bob_box) {
     rc = cbox_session_init_from_prekey(alice_box, "alice", cbox_vec_data(bob_prekey), cbox_vec_len(bob_prekey), &alice);
     cbox_vec_free(bob_prekey);
     assert(rc == CBOX_SUCCESS);
-    u8 const hello_bob[] = "Hello Bob!";
+    uint8_t const hello_bob[] = "Hello Bob!";
     CBoxVec * cipher = NULL;
     rc = cbox_encrypt(alice, hello_bob, sizeof(hello_bob), &cipher);
     assert(rc == CBOX_SUCCESS);

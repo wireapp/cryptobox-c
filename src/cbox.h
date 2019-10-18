@@ -28,7 +28,7 @@ extern "C" {
 typedef struct CBoxVec CBoxVec;
 
 // Get a pointer to the contents of a byte vector.
-u8 * cbox_vec_data(CBoxVec const * v);
+uint8_t * cbox_vec_data(CBoxVec const * v);
 
 // Get the length of a byte vector.
 size_t cbox_vec_len(CBoxVec const * v);
@@ -154,7 +154,7 @@ CBoxResult cbox_file_open(char const * path, CBox ** b);
 // `ident_len` is the length of `ident`.
 // `mode` specifies the desired storage of the given identity inside the box.
 CBoxResult cbox_file_open_with(char const * path,
-                               u8 const * ident,
+                               uint8_t const * ident,
                                size_t ident_len,
                                CBoxIdentityMode mode,
                                CBox ** b);
@@ -180,7 +180,7 @@ void cbox_close(CBox * b);
 // Prekeys //////////////////////////////////////////////////////////////////
 
 // The ID of the "last resort" prekey, which is never removed.
-extern const u16 CBOX_LAST_PREKEY_ID;
+extern const uint16_t CBOX_LAST_PREKEY_ID;
 
 // Generate a new prekey, returning the public prekey material for usage by a
 // peer to initialise a session.
@@ -190,7 +190,7 @@ extern const u16 CBOX_LAST_PREKEY_ID;
 // `b` is the CBox in which to create the new prekey.
 // `prekey` is the pointer to point at the public key material of the new
 //          prekey for usage by a peer.
-CBoxResult cbox_new_prekey(CBox const * b, u16 id, CBoxVec ** prekey);
+CBoxResult cbox_new_prekey(CBox const * b, uint16_t id, CBoxVec ** prekey);
 
 // CBoxSession //////////////////////////////////////////////////////////////
 
@@ -210,7 +210,7 @@ typedef struct CBoxSession CBoxSession;
 // `s` is the pointer to point at the successfully initialised session.
 CBoxResult cbox_session_init_from_prekey(CBox const * b,
                                          char const * sid,
-                                         u8 const * peer_prekey,
+                                         uint8_t const * peer_prekey,
                                          size_t peer_prekey_len,
                                          CBoxSession ** s);
 
@@ -228,7 +228,7 @@ CBoxResult cbox_session_init_from_prekey(CBox const * b,
 // `plain` is the pointer to point at the successfully decrypted message.
 CBoxResult cbox_session_init_from_message(CBox const * b,
                                           char const * sid,
-                                          u8 const * cipher,
+                                          uint8_t const * cipher,
                                           size_t cipher_len,
                                           CBoxSession ** s,
                                           CBoxVec ** plain);
@@ -276,7 +276,7 @@ CBoxResult cbox_session_delete(CBox const * b, char const * sid);
 // `plain_len` is the length of `plain`.
 // `cipher` is the pointer to point at the resulting ciphertext.
 CBoxResult cbox_encrypt(CBoxSession * s,
-                        u8 const * plain,
+                        uint8_t const * plain,
                         size_t plain_len,
                         CBoxVec ** cipher);
 
@@ -287,7 +287,7 @@ CBoxResult cbox_encrypt(CBoxSession * s,
 // `cipher_len` is the length of `cipher`.
 // `plain` is the pointer to point at the resulting plaintext.
 CBoxResult cbox_decrypt(CBoxSession * s,
-                        u8 const * cipher,
+                        uint8_t const * cipher,
                         size_t cipher_len,
                         CBoxVec ** plain);
 
@@ -317,7 +317,7 @@ CBoxResult cbox_fingerprint_remote(CBoxSession const * s, CBoxVec ** fp);
 // `prekey` is the byte array to extract the fingerprint from.
 // `prekey_len` is the length of `prekey`.
 // `fp` is the pointer to point at the fingerprint.
-CBoxResult cbox_fingerprint_prekey(u8 const * prekey, size_t prekey_len, CBoxVec ** fp);
+CBoxResult cbox_fingerprint_prekey(uint8_t const * prekey, size_t prekey_len, CBoxVec ** fp);
 
 // Generate `len` cryptographically strong random bytes.
 //
@@ -333,7 +333,7 @@ CBoxResult cbox_random_bytes(CBox const * b, size_t len, CBoxVec ** rb);
 // `prekey` is the byte array to check.
 // `prekey_len` is the length of `prekey`.
 // `prekey_id` will contain the prekey ID if possible.
-CBoxResult cbox_is_prekey(u8 const * prekey, size_t prekey_len, u16 * prekey_id);
+CBoxResult cbox_is_prekey(uint8_t const * prekey, size_t prekey_len, uint16_t * prekey_id);
 
 #ifdef __cplusplus
 }
