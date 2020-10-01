@@ -6,11 +6,11 @@ You can find the published source code at [github.com/wireapp](https://github.co
 
 For licensing information, see the attached LICENSE file and the list of third-party licenses at [wire.com/legal/licenses/](https://wire.com/legal/licenses/).
 
-# Cryptobox - C API
+# Cryptobox -C API
 
 `cryptobox-c` provides a high-level C API for the `cryptobox` library.
 
-**Disclaimer: This project is an early work-in-progress.**
+**Disclaimer:This project is an early work-in-progress.**
 
 ## Dependencies
 
@@ -50,7 +50,7 @@ The following is an API overview. For detailed function signatures, refer to the
 ### CBox
 
 A `CBox` is an opaque container for all the necessary key material of a single client (e.g. a single device of a user).
-A `CBox` is allocated with a call to `cbox_file_open`. It takes a `path` as an argument which must be a valid file path
+A `CBox` is allocated with a call to `cbox_file_open`. It takes a `path` as an argument which must be a valid file path.
 pointing to an existing directory. That directory becomes the root directory for all data stored by that `CBox` or any of the `CBoxSession`s
 obtained from it.
 
