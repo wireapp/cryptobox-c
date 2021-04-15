@@ -151,6 +151,62 @@ void test_prekey_removal(CBox * alice_box, CBox * bob_box) {
     printf("OK\n");
 }
 
+void test_prekey_reuse_by_two_users(CBox * alice_box, CBox * bob_box, CBox * charlie_box) {
+    printf("test_prekey_reuse_by_two_users ... ");
+    CBoxResult rc = CBOX_SUCCESS;
+
+    printf("Bob...\n");
+    // Bob prekey
+    CBoxVec * bob_prekey = NULL;
+    rc = cbox_new_prekey(bob_box, 1, &bob_prekey);
+    assert(rc == CBOX_SUCCESS);
+
+    printf("Alice...\n");
+    // Alice
+    CBoxSession * alice = NULL;
+    rc = cbox_session_init_from_prekey(alice_box, "alice", cbox_vec_data(bob_prekey), cbox_vec_len(bob_prekey), &alice);
+    assert(rc == CBOX_SUCCESS);
+    uint8_t const hello_bob[] = "Hello Bob!";
+    CBoxVec * cipher = NULL;
+    rc = cbox_encrypt(alice, hello_bob, sizeof(hello_bob), &cipher);
+    assert(rc == CBOX_SUCCESS);
+
+    printf("Charlie...\n");
+    // Charlie
+    CBoxSession * charlie = NULL;
+    rc = cbox_session_init_from_prekey(charlie_box, "charlie", cbox_vec_data(bob_prekey), cbox_vec_len(bob_prekey), &charlie);
+    assert(rc == CBOX_SUCCESS);
+    uint8_t const hello_bob2[] = "Hello Bob 2!";
+    CBoxVec * cipher_charlie = NULL;
+    rc = cbox_encrypt(charlie, hello_bob2, sizeof(hello_bob2), &cipher_charlie);
+    assert(rc == CBOX_SUCCESS);
+
+    // Bob
+    printf("Bob...\n");
+    CBoxSession * bob = NULL;
+    CBoxVec * plain = NULL;
+    rc = cbox_session_init_from_message(bob_box, "bob", cbox_vec_data(cipher), cbox_vec_len(cipher), &bob, &plain);
+    assert(rc == CBOX_SUCCESS);
+
+    printf("So far so good...\n");
+    cbox_session_save(bob_box, bob);
+
+    // Now the prekey should be gone from Bob's cryptobox upon saving.
+    cbox_session_close(bob);
+    cbox_vec_free(plain);
+    rc = cbox_session_init_from_message(bob_box, "bob", cbox_vec_data(cipher_charlie), cbox_vec_len(cipher_charlie), &bob, &plain);
+    printf("The following assertion should fail actually if charlie uses the same prekey...\n");
+    assert(rc == CBOX_SUCCESS); // will be a CBOX_PREKEY_NOT_FOUND and test will fail here.
+
+    // Cleanup
+    cbox_vec_free(bob_prekey);
+    cbox_vec_free(cipher);
+    cbox_session_close(alice);
+    cbox_session_close(charlie);
+
+    printf("OK\n");
+}
+
 void test_random_bytes(CBox const * b) {
     printf("test_random_bytes ... ");
     CBoxVec * random = NULL;
@@ -446,7 +502,11 @@ int main() {
     char * bob_dir = mkdtemp(bob_tmp);
     assert(bob_dir != NULL);
 
-    printf("alice=\"%s\", bob=\"%s\"\n", alice_tmp, bob_tmp);
+    char charlie_tmp[] = "/tmp/cbox_test_charlieXXXXXX";
+    char * charlie_dir = mkdtemp(charlie_tmp);
+    assert(charlie_dir != NULL);
+
+    printf("alice=\"%s\", bob=\"%s\", charlie=\"%s\"\n", alice_tmp, bob_tmp, charlie_tmp);
 
     CBoxResult rc = CBOX_SUCCESS;
 
@@ -460,9 +520,15 @@ int main() {
     assert(rc == CBOX_SUCCESS);
     assert(bob_box != NULL);
 
+    CBox * charlie_box = NULL;
+    rc = cbox_file_open(charlie_dir, &charlie_box);
+    assert(rc == CBOX_SUCCESS);
+    assert(charlie_box != NULL);
+
     // Run test cases
     test_basics(alice_box, bob_box);
     test_prekey_removal(alice_box, bob_box);
+    test_prekey_reuse_by_two_users(alice_box, bob_box, charlie_box);
     test_random_bytes(alice_box);
     test_prekey_check(alice_box);
     test_last_prekey(alice_box, bob_box);
